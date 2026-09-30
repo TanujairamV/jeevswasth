@@ -1,0 +1,73 @@
+name: Android APK Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '--build')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+        timeout-minutes: 10
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Build APK
+        run: flutter build apk --release
+        timeout-minutes: 15
+
+      - name: Calculate release version
+        id: version
+        working-directory: .
+        shell: bash
+        run: |
+          latest=$(git tag --list 'v0.*' --sort=-version:refname | head -n 1)
+
+          if [ -z "$latest" ]; then
+            version="0.01"
+          else
+            current="${latest#v}"
+            version=$(awk -v v="$current" 'BEGIN { printf "%.2f", v + 0.01 }')
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            "frontend/build/app/outputs/flutter-apk/app-release.apk" \
+            --title "JeevSwasth ${{ steps.version.outputs.tag }}" \
+            --generate-notes
