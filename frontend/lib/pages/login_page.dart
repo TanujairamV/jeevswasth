@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../farmer/home.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -15,6 +17,11 @@ class _LoginPageState extends State<LoginPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  bool _obscurePassword = true;
   bool _isInitializing = false;
   bool _isInitialized = false;
   bool _isSigningIn = false;
@@ -23,6 +30,13 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _initializeGoogleSignIn();
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializeGoogleSignIn() async {
@@ -152,12 +166,38 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  // Demo-only role routing. This does not authenticate the user with Firebase.
+  Widget? _demoDashboardForRole(String role) {
+    switch (role) {
+      case 'farmer':
+        return const FarmerHome();
+      // 'vet', 'fieldworker' and 'officer' cases belong here once their
+      // dashboard screens (and classes) exist.
+      default:
+        return null;
+    }
+  }
+
   void _handleSignIn() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Email or password sign-in is not implemented yet.'),
-        behavior: SnackBarBehavior.floating,
-      ),
+    FocusScope.of(context).unfocus();
+
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final String role = _emailController.text.trim().toLowerCase();
+    final Widget? destination = _demoDashboardForRole(role);
+
+    if (destination == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No demo dashboard is available for "$role" yet.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => destination),
     );
   }
 
@@ -225,6 +265,72 @@ class _LoginPageState extends State<LoginPage> {
                     'Sign in to continue to your account.',
                     style: textTheme.bodyMedium?.copyWith(
                       color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextFormField(
+                          controller: _emailController,
+                          enabled: !_isSigningIn,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autocorrect: false,
+                          decoration: InputDecoration(
+                            labelText: 'Email or role',
+                            hintText: 'Demo role, e.g. farmer',
+                            prefixIcon: const Icon(Icons.person_outline),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Please enter your email or role.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordController,
+                          enabled: !_isSigningIn,
+                          obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) => _handleSignIn(),
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                              ),
+                              tooltip: _obscurePassword
+                                  ? 'Show password'
+                                  : 'Hide password',
+                              onPressed: () {
+                                setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                );
+                              },
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your password.';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 28),

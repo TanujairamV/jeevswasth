@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:frontend/pages/login_page.dart';
 import 'firebase_options.dart';
+import 'farmer/home.dart';
 
 Future<void> main() async {
   material.WidgetsFlutterBinding.ensureInitialized();
