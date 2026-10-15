@@ -1,173 +1,61 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:dynamic_color/dynamic_color.dart';
 
-void main() {
-  runApp(const JeevSwasthApp());
+import 'package:dynamic_color/dynamic_color.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart' as material;
+import 'package:frontend/pages/login_page.dart';
+import 'firebase_options.dart';
+
+Future<void> main() async {
+  material.WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  material.runApp(const JeevSwasthApp());
 }
 
-class JeevSwasthApp extends StatelessWidget {
+class JeevSwasthApp extends material.StatelessWidget {
   const JeevSwasthApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  material.Widget build(material.BuildContext context) {
     return DynamicColorBuilder(
       builder: (lightDynamic, darkDynamic) {
-        return MaterialApp(
+        final material.ColorScheme lightScheme = lightDynamic == null
+            ? material.ColorScheme.fromSeed(
+                seedColor: const material.Color(0xFF6750A4),
+                brightness: material.Brightness.light,
+              )
+            : material.ColorScheme.fromSeed(
+                seedColor: lightDynamic.primary,
+                brightness: material.Brightness.light,
+              );
+
+        final material.ColorScheme darkScheme = darkDynamic == null
+            ? material.ColorScheme.fromSeed(
+                seedColor: const material.Color(0xFFD0BCFF),
+                brightness: material.Brightness.dark,
+              )
+            : material.ColorScheme.fromSeed(
+                seedColor: darkDynamic.primary,
+                brightness: material.Brightness.dark,
+              );
+
+        return material.MaterialApp(
           debugShowCheckedModeBanner: false,
-
-          theme: ThemeData(
+          theme: material.ThemeData(
             useMaterial3: true,
-            colorScheme: lightDynamic ??
-                ColorScheme.fromSeed(
-                  seedColor: const Color(0xFF4F6F52),
-                ),
+            colorScheme: lightScheme,
           ),
-
-          darkTheme: ThemeData(
+          darkTheme: material.ThemeData(
             useMaterial3: true,
-            colorScheme: darkDynamic ??
-                ColorScheme.fromSeed(
-                  seedColor: const Color(0xFF4F6F52),
-                  brightness: Brightness.dark,
-                ),
+            colorScheme: darkScheme,
           ),
-
-          themeMode: ThemeMode.system,
-
-          home: const DynamicColorTestScreen(),
+          themeMode: material.ThemeMode.system,
+          home: const LoginPage(),
         );
       },
-    );
-  }
-}
-
-class DynamicColorTestScreen extends StatelessWidget {
-  const DynamicColorTestScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('JeevSwasth'),
-      ),
-
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            'Dynamic Material 3',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-
-          const SizedBox(height: 8),
-
-          Text(
-            'Colors come from the device dynamic color system.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-
-          const SizedBox(height: 24),
-
-          _ColorBox(
-            name: 'Primary',
-            color: colors.primary,
-            textColor: colors.onPrimary,
-          ),
-
-          _ColorBox(
-            name: 'Primary Container',
-            color: colors.primaryContainer,
-            textColor: colors.onPrimaryContainer,
-          ),
-
-          _ColorBox(
-            name: 'Secondary',
-            color: colors.secondary,
-            textColor: colors.onSecondary,
-          ),
-
-          _ColorBox(
-            name: 'Secondary Container',
-            color: colors.secondaryContainer,
-            textColor: colors.onSecondaryContainer,
-          ),
-
-          _ColorBox(
-            name: 'Tertiary',
-            color: colors.tertiary,
-            textColor: colors.onTertiary,
-          ),
-
-          _ColorBox(
-            name: 'Tertiary Container',
-            color: colors.tertiaryContainer,
-            textColor: colors.onTertiaryContainer,
-          ),
-
-          const SizedBox(height: 24),
-
-          FilledButton(
-            onPressed: () {},
-            child: const Text('Material 3 Button'),
-          ),
-
-          const SizedBox(height: 16),
-
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                'Material 3 Card',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          TextField(
-            decoration: const InputDecoration(
-              labelText: 'Animal name',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ColorBox extends StatelessWidget {
-  final String name;
-  final Color color;
-  final Color textColor;
-
-  const _ColorBox({
-    required this.name,
-    required this.color,
-    required this.textColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 75,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      alignment: Alignment.centerLeft,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        name,
-        style: TextStyle(
-          color: textColor,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
     );
   }
 }
