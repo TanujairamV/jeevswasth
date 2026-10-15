@@ -65,7 +65,7 @@ class DefaultFirebaseOptions {
     projectId: 'jeevswasth',
     storageBucket: 'jeevswasth.firebasestorage.app',
     iosClientId: '24923811887-pu3pnc07rle6esntnq6li0an5l9jjk3s.apps.googleusercontent.com',
-    iosBundleId: 'com.example.frontend',
+    iosBundleId: 'com.jeevswasth',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -75,7 +75,7 @@ class DefaultFirebaseOptions {
     projectId: 'jeevswasth',
     storageBucket: 'jeevswasth.firebasestorage.app',
     iosClientId: '24923811887-pu3pnc07rle6esntnq6li0an5l9jjk3s.apps.googleusercontent.com',
-    iosBundleId: 'com.example.frontend',
+    iosBundleId: 'com.jeevswasth',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
