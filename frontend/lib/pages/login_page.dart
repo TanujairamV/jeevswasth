@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../farmer/home.dart';
+import '../field_worker/home.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -166,13 +167,39 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  // Developer-only testing helper to open a demo role dashboard or show a notice if not created yet.
+  void _openDemoRole(String role) {
+    FocusScope.of(context).unfocus();
+    final Widget? destination = _demoDashboardForRole(role);
+
+    if (destination == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Dashboard for $role has not been created yet.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => destination),
+    );
+  }
+
   // Demo-only role routing. This does not authenticate the user with Firebase.
   Widget? _demoDashboardForRole(String role) {
     switch (role) {
       case 'farmer':
         return const FarmerHome();
-      // 'vet', 'fieldworker' and 'officer' cases belong here once their
-      // dashboard screens (and classes) exist.
+      case 'vet':
+      case 'veterinarian':
+      case 'field worker':
+      case 'field_worker':
+      case 'surveillance officer':
+      case 'surveillance_officer':
+      case 'officer':
+        return const FieldWorkerHome();
       default:
         return null;
     }
@@ -184,21 +211,7 @@ class _LoginPageState extends State<LoginPage> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final String role = _emailController.text.trim().toLowerCase();
-    final Widget? destination = _demoDashboardForRole(role);
-
-    if (destination == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No demo dashboard is available for "$role" yet.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => destination),
-    );
+    _openDemoRole(role);
   }
 
   @override
@@ -343,6 +356,86 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     child: const Text('Sign in'),
+                  ),
+                  const SizedBox(height: 24),
+                  // Developer-only testing functionality
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Divider(color: colors.outlineVariant),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'DEVELOPER TESTING',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: colors.onSurfaceVariant,
+                                letterSpacing: 1,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(color: colors.outlineVariant),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _isSigningIn ? null : () => _openDemoRole('farmer'),
+                        icon: const Icon(Icons.agriculture_outlined),
+                        label: const Text('Test Farmer'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(54),
+                          side: BorderSide(color: colors.outlineVariant),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _isSigningIn ? null : () => _openDemoRole('veterinarian'),
+                        icon: const Icon(Icons.medical_services_outlined),
+                        label: const Text('Test Veterinarian'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(54),
+                          side: BorderSide(color: colors.outlineVariant),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _isSigningIn ? null : () => _openDemoRole('field worker'),
+                        icon: const Icon(Icons.assignment_outlined),
+                        label: const Text('Test Field Worker'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(54),
+                          side: BorderSide(color: colors.outlineVariant),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _isSigningIn ? null : () => _openDemoRole('surveillance officer'),
+                        icon: const Icon(Icons.admin_panel_settings_outlined),
+                        label: const Text('Test Surveillance Officer'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(54),
+                          side: BorderSide(color: colors.outlineVariant),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   Row(
