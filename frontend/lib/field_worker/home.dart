@@ -75,7 +75,6 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // App header
         Row(
           children: [
             CircleAvatar(
@@ -86,17 +85,17 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
               ),
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'JEEVSWASTH',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   Text(
                     'Livestock Registry',
-                    style: TextStyle(fontSize: 12),
+                    style: const TextStyle(fontSize: 12),
                   ),
                 ],
               ),
@@ -113,8 +112,6 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
         ),
 
         const SizedBox(height: 20),
-
-        // Field worker information
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -147,9 +144,9 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                   label: const Text('GPS Active'),
                   backgroundColor: colors.secondaryContainer,
                 ),
-                const Text(
+                Text(
                   'Bilaspur Sector',
-                  style: TextStyle(fontSize: 12),
+                  style: theme.textTheme.bodySmall,
                 ),
               ],
             ),
@@ -157,8 +154,6 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
         ),
 
         const SizedBox(height: 16),
-
-        // Offline sync
         Card(
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -169,23 +164,24 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                   child: Icon(Icons.sync, color: colors.primary),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Offline Mode Ready',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       Text(
                         '4 reports stored securely',
-                        style: TextStyle(fontSize: 12),
+                        style: const TextStyle(fontSize: 12),
                       ),
                     ],
                   ),
                 ),
                 FilledButton.tonal(
                   onPressed: () => showMessage('Reports synced.'),
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 48), padding: const EdgeInsets.symmetric(horizontal: 20)),
                   child: const Text('Sync Now'),
                 ),
               ],
@@ -194,8 +190,6 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
         ),
 
         const SizedBox(height: 12),
-
-        // Daily quota
         Card(
           color: colors.primary,
           child: Padding(
@@ -205,9 +199,9 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
               children: [
                 Text(
                   'DAILY FIELD QUOTA',
-                  style: TextStyle(
+                  style: theme.textTheme.labelLarge?.copyWith(
                     color: colors.onPrimary.withValues(alpha: 0.75),
-                    fontSize: 12,
+                    letterSpacing: 0.8,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -221,7 +215,7 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                 const SizedBox(height: 4),
                 Text(
                   '3 routine visits & 1 outbreak verification left',
-                  style: TextStyle(
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: colors.onPrimary.withValues(alpha: 0.8),
                   ),
                 ),
@@ -253,8 +247,6 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
         ),
 
         const SizedBox(height: 20),
-
-        // Quick actions
         Row(
           children: [
             Expanded(
@@ -280,7 +272,7 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
-          childAspectRatio: 1.2,
+          childAspectRatio: 1.0,
           children: [
             _action(
               context,
@@ -314,8 +306,6 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
         ),
 
         const SizedBox(height: 20),
-
-        // Scheduled visits
         Row(
           children: [
             Expanded(
@@ -426,16 +416,15 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: colors.onPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: colors.onPrimary.withValues(alpha: 0.8),
-                    fontSize: 10,
                   ),
                 ),
               ],
@@ -453,7 +442,8 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
     String subtitle,
     VoidCallback onTap,
   ) {
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return Card(
       color: colors.surfaceContainerHighest,
@@ -481,7 +471,7 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
               const Spacer(),
               Text(
                 title,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
               Text(
@@ -543,9 +533,8 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                         ),
                         Text(
                           time,
-                          style: TextStyle(
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: urgent ? colors.error : colors.onSurfaceVariant,
-                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -553,17 +542,13 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                     const SizedBox(height: 8),
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '📍 $location',
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colors.onSurfaceVariant,
-                        fontSize: 12,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -579,9 +564,7 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                         children: [
                           Text(
                             animal,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 4),
                           Chip(
@@ -592,8 +575,7 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                           ),
                           Text(
                             description,
-                            style: TextStyle(
-                              fontSize: 12,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: colors.onSurfaceVariant,
                             ),
                           ),
@@ -606,6 +588,7 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                       child: FilledButton.icon(
                         onPressed: onPressed,
                         icon: const Icon(Icons.assignment_turned_in_outlined),
+                        style: FilledButton.styleFrom(minimumSize: const Size(0, 52), padding: const EdgeInsets.symmetric(horizontal: 20)),
                         label: Text(urgent ? 'Start Inspection' : 'Open Visit'),
                       ),
                     ),
@@ -614,6 +597,7 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                       child: OutlinedButton.icon(
                         onPressed: () => showMessage('Directions coming soon.'),
                         icon: const Icon(Icons.navigation_outlined),
+                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52), padding: const EdgeInsets.symmetric(horizontal: 20)),
                         label: const Text('Directions'),
                       ),
                     ),
