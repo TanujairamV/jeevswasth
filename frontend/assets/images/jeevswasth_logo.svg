@@ -1,0 +1,30 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <!-- Protective shield -->
+  <path d="M64 10 L106 27 V57
+           C106 83 88 104 64 118
+           C40 104 22 83 22 57 V27 Z"
+        stroke="currentColor"
+        stroke-width="5"
+        stroke-linejoin="round"/>
+
+  <!-- Veterinary medical cross -->
+  <path d="M57 35 H71 V49 H85 V63 H71 V77 H57 V63 H43 V49 H57 Z"
+        fill="currentColor"/>
+
+  <!-- Paw print -->
+  <ellipse cx="64" cy="91" rx="10" ry="7"
+           fill="#2E9B62"/>
+  <ellipse cx="48" cy="81" rx="4.5" ry="6"
+           transform="rotate(-25 48 81)"
+           fill="#2E9B62"/>
+  <ellipse cx="58" cy="76" rx="4.5" ry="6"
+           transform="rotate(-8 58 76)"
+           fill="#2E9B62"/>
+  <ellipse cx="70" cy="76" rx="4.5" ry="6"
+           transform="rotate(8 70 76)"
+           fill="#2E9B62"/>
+  <ellipse cx="80" cy="81" rx="4.5" ry="6"
+           transform="rotate(25 80 81)"
+           fill="#2E9B62"/>
+</svg>

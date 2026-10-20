@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:frontend/pages/login_page.dart';
 import 'firebase_options.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   material.WidgetsFlutterBinding.ensureInitialized();
@@ -44,14 +45,8 @@ class JeevSwasthApp extends material.StatelessWidget {
 
         return material.MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: material.ThemeData(
-            useMaterial3: true,
-            colorScheme: lightScheme,
-          ),
-          darkTheme: material.ThemeData(
-            useMaterial3: true,
-            colorScheme: darkScheme,
-          ),
+          theme: AppTheme.light(lightScheme),
+          darkTheme: AppTheme.dark(darkScheme),
           themeMode: material.ThemeMode.system,
           home: const LoginPage(),
         );
