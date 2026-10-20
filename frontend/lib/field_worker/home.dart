@@ -1,4 +1,13 @@
+import 'package:geocoding/geocoding.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class _LocationProblem implements Exception {
+  const _LocationProblem(this.message);
+
+  final String message;
+}
 
 class FieldWorkerHome extends StatefulWidget {
   const FieldWorkerHome({super.key});
@@ -9,13 +18,152 @@ class FieldWorkerHome extends StatefulWidget {
 
 class _FieldWorkerHomeState extends State<FieldWorkerHome> {
   int selectedIndex = 1;
+  Position? _position;
+  String? _address;
+  DateTime? _locationTimestamp;
+  String _gpsStatus = 'Checking GPS…';
+  bool _isRefreshingLocation = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedLocation();
+    _refreshLocation();
+  }
+
+  Future<void> _loadSavedLocation() async {
+    final preferences = await SharedPreferences.getInstance();
+    final latitude = preferences.getDouble('field_worker_latitude');
+    final longitude = preferences.getDouble('field_worker_longitude');
+    if (!mounted || latitude == null || longitude == null) return;
+
+    setState(() {
+      _position = Position(
+        latitude: latitude,
+        longitude: longitude,
+        timestamp: DateTime.fromMillisecondsSinceEpoch(
+          preferences.getInt('field_worker_location_timestamp') ?? 0,
+        ),
+        accuracy: 0,
+        altitude: 0,
+        altitudeAccuracy: 0,
+        heading: 0,
+        headingAccuracy: 0,
+        speed: 0,
+        speedAccuracy: 0,
+        floor: null,
+        isMocked: false,
+      );
+      _address = preferences.getString('field_worker_address');
+      final timestamp = preferences.getInt('field_worker_location_timestamp');
+      _locationTimestamp = timestamp == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(timestamp);
+    });
+  }
+
+  Future<void> _refreshLocation() async {
+    if (_isRefreshingLocation) return;
+    setState(() {
+      _isRefreshingLocation = true;
+      _gpsStatus = 'Locating…';
+    });
+
+    try {
+      await _requestLocationPermission();
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        throw const _LocationProblem('GPS is disabled on this device.');
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+      String? address;
+      try {
+        final placemarks = await placemarkFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+        if (placemarks.isNotEmpty) {
+          final place = placemarks.first;
+          address = [
+            place.name,
+            place.subLocality,
+            place.locality,
+            place.administrativeArea,
+          ].where((part) => part != null && part.trim().isNotEmpty).join(', ');
+        }
+      } catch (_) {
+        // Coordinates remain useful when the geocoder is offline/unavailable.
+      }
+      address ??= _coordinatesFor(position);
+
+      final timestamp = DateTime.now();
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setDouble('field_worker_latitude', position.latitude);
+      await preferences.setDouble('field_worker_longitude', position.longitude);
+      await preferences.setString('field_worker_address', address);
+      await preferences.setInt(
+        'field_worker_location_timestamp',
+        timestamp.millisecondsSinceEpoch,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _position = position;
+        _address = address;
+        _locationTimestamp = timestamp;
+        _gpsStatus = 'GPS Active';
+      });
+    } on _LocationProblem catch (problem) {
+      if (!mounted) return;
+      setState(() => _gpsStatus = problem.message);
+      showMessage(problem.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _gpsStatus = 'Unable to read GPS right now.');
+      showMessage('Could not refresh location. Last saved location is shown.');
+    } finally {
+      if (mounted) setState(() => _isRefreshingLocation = false);
+    }
+  }
+
+  Future<void> _requestLocationPermission() async {
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied) {
+      throw const _LocationProblem('Location permission was denied.');
+    }
+    if (permission == LocationPermission.deniedForever) {
+      throw const _LocationProblem(
+        'Location permission is blocked. Enable it in Settings.',
+      );
+    }
+  }
+
+  String _coordinatesFor(Position position) =>
+      '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+
+  String _locationLabel() {
+    if (_address != null && _address!.isNotEmpty) return _address!;
+    if (_position != null) return _coordinatesFor(_position!);
+    return 'Location unavailable';
+  }
+
+  String _formatTime(DateTime timestamp) {
+    final hour = timestamp.hour % 12 == 0 ? 12 : timestamp.hour % 12;
+    final minute = timestamp.minute.toString().padLeft(2, '0');
+    final period = timestamp.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
+  }
 
   void showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -91,7 +239,9 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                 children: [
                   Text(
                     'JEEVSWASTH',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   Text(
                     'Livestock Registry',
@@ -104,9 +254,16 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
               onPressed: () => showMessage('No new notifications.'),
               icon: const Icon(Icons.notifications_none),
             ),
-            CircleAvatar(
-              backgroundColor: colors.secondaryContainer,
-              child: Icon(Icons.person, color: colors.onSecondaryContainer),
+            InkWell(
+              onTap: _refreshLocation,
+              borderRadius: BorderRadius.circular(24),
+              child: Tooltip(
+                message: 'Open profile and check GPS permission',
+                child: CircleAvatar(
+                  backgroundColor: colors.secondaryContainer,
+                  child: Icon(Icons.person, color: colors.onSecondaryContainer),
+                ),
+              ),
             ),
           ],
         ),
@@ -130,24 +287,55 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  Text(
-                    'Today, 14 Nov 2024',
-                    style: theme.textTheme.bodySmall,
-                  ),
+                  Text('Today, 14 Nov 2024', style: theme.textTheme.bodySmall),
                 ],
               ),
             ),
             Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Chip(
-                  avatar: const Icon(Icons.gps_fixed, size: 16),
-                  label: const Text('GPS Active'),
+                  avatar: _isRefreshingLocation
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          _gpsStatus == 'GPS Active'
+                              ? Icons.gps_fixed
+                              : Icons.gps_off,
+                          size: 16,
+                        ),
+                  label: Text(_gpsStatus),
                   backgroundColor: colors.secondaryContainer,
                 ),
-                Text(
-                  'Bilaspur Sector',
-                  style: theme.textTheme.bodySmall,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 150,
+                      child: Text(
+                        _locationLabel(),
+                        textAlign: TextAlign.end,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Refresh location',
+                      onPressed: _isRefreshingLocation
+                          ? null
+                          : _refreshLocation,
+                      icon: const Icon(Icons.refresh, size: 20),
+                    ),
+                  ],
                 ),
+                if (_locationTimestamp != null)
+                  Text(
+                    'Updated ${_formatTime(_locationTimestamp!)}',
+                    style: theme.textTheme.labelSmall,
+                  ),
               ],
             ),
           ],
@@ -170,7 +358,9 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                     children: [
                       Text(
                         'Offline Mode Ready',
-                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       Text(
                         '4 reports stored securely',
@@ -181,7 +371,10 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                 ),
                 FilledButton.tonal(
                   onPressed: () => showMessage('Reports synced.'),
-                  style: FilledButton.styleFrom(minimumSize: const Size(0, 48), padding: const EdgeInsets.symmetric(horizontal: 20)),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 48),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                  ),
                   child: const Text('Sync Now'),
                 ),
               ],
@@ -257,10 +450,7 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                 ),
               ),
             ),
-            Text(
-              'Tap to launch form',
-              style: theme.textTheme.bodySmall,
-            ),
+            Text('Tap to launch form', style: theme.textTheme.bodySmall),
           ],
         ),
 
@@ -355,10 +545,7 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
 
         Card(
           child: ListTile(
-            leading: Icon(
-              Icons.check_circle_outline,
-              color: colors.primary,
-            ),
+            leading: Icon(Icons.check_circle_outline, color: colors.primary),
             title: const Text(
               'Vikas Milk Producers',
               style: TextStyle(fontWeight: FontWeight.w700),
@@ -462,16 +649,15 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                     child: Icon(icon, color: colors.onPrimary),
                   ),
                   const Spacer(),
-                  Icon(
-                    Icons.arrow_forward,
-                    color: colors.onSurfaceVariant,
-                  ),
+                  Icon(Icons.arrow_forward, color: colors.onSurfaceVariant),
                 ],
               ),
               const Spacer(),
               Text(
                 title,
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -528,28 +714,33 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                             size: 16,
                           ),
                           label: Text(
-                            urgent ? 'URGENT OUTBREAK ALERT' : 'ROUTINE SURVEILLANCE',
+                            urgent
+                                ? 'URGENT OUTBREAK ALERT'
+                                : 'ROUTINE SURVEILLANCE',
                           ),
                         ),
                         Text(
                           time,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: urgent ? colors.error : colors.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: urgent
+                                    ? colors.error
+                                    : colors.onSurfaceVariant,
+                              ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '📍 $location',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: colors.onSurfaceVariant),
                     ),
                     const SizedBox(height: 12),
                     Container(
@@ -564,7 +755,8 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                         children: [
                           Text(
                             animal,
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 4),
                           Chip(
@@ -575,9 +767,8 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                           ),
                           Text(
                             description,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: colors.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: colors.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -588,7 +779,10 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                       child: FilledButton.icon(
                         onPressed: onPressed,
                         icon: const Icon(Icons.assignment_turned_in_outlined),
-                        style: FilledButton.styleFrom(minimumSize: const Size(0, 52), padding: const EdgeInsets.symmetric(horizontal: 20)),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 52),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                        ),
                         label: Text(urgent ? 'Start Inspection' : 'Open Visit'),
                       ),
                     ),
@@ -597,7 +791,10 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
                       child: OutlinedButton.icon(
                         onPressed: () => showMessage('Directions coming soon.'),
                         icon: const Icon(Icons.navigation_outlined),
-                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 52), padding: const EdgeInsets.symmetric(horizontal: 20)),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 52),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                        ),
                         label: const Text('Directions'),
                       ),
                     ),
