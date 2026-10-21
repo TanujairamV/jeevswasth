@@ -52,12 +52,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCcH_FcLG4qnJS7ujWMjWHCEiksErmLDmE',
-    appId: '1:24923811887:android:7d058af5976d8a05fc16da',
+    appId: '1:24923811887:android:b5dfd26b8fb22b96fc16da',
     messagingSenderId: '24923811887',
     projectId: 'jeevswasth',
     storageBucket: 'jeevswasth.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAw-5aci07XmaF28-JZyWRGM2jD3I1eJh8',
     appId: '1:24923811887:ios:add4b9b06fb75b59fc16da',
@@ -65,9 +64,8 @@ class DefaultFirebaseOptions {
     projectId: 'jeevswasth',
     storageBucket: 'jeevswasth.firebasestorage.app',
     iosClientId: '24923811887-pu3pnc07rle6esntnq6li0an5l9jjk3s.apps.googleusercontent.com',
-    iosBundleId: 'com.jeevswasth',
+    iosBundleId: 'com.example.frontend',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAw-5aci07XmaF28-JZyWRGM2jD3I1eJh8',
     appId: '1:24923811887:ios:add4b9b06fb75b59fc16da',
@@ -75,7 +73,7 @@ class DefaultFirebaseOptions {
     projectId: 'jeevswasth',
     storageBucket: 'jeevswasth.firebasestorage.app',
     iosClientId: '24923811887-pu3pnc07rle6esntnq6li0an5l9jjk3s.apps.googleusercontent.com',
-    iosBundleId: 'com.jeevswasth',
+    iosBundleId: 'com.example.frontend',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

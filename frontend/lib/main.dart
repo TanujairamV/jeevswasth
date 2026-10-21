@@ -1,6 +1,7 @@
 
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:frontend/pages/login_page.dart';
 import 'firebase_options.dart';
@@ -9,9 +10,12 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   material.WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Skip Firebase initialization on Linux for UI preview.
+  if (defaultTargetPlatform != TargetPlatform.linux) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
 
   material.runApp(const JeevSwasthApp());
 }

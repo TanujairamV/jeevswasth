@@ -29,7 +29,9 @@ class _LivestockSurveyPageState extends State<LivestockSurveyPage> {
 
   @override
   void dispose() {
-    for (final controller in [_farmer, _phone, _village, _count, _notes]) controller.dispose();
+    for (final controller in [_farmer, _phone, _village, _count, _notes]) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -74,7 +76,7 @@ class _LivestockSurveyPageState extends State<LivestockSurveyPage> {
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Livestock health survey')),
         body: Form(key: _formKey, child: ListView(padding: const EdgeInsets.all(16), children: [
-          DropdownButtonFormField<String>(value: _species, decoration: const InputDecoration(labelText: 'Animal species', border: OutlineInputBorder()), items: ['Cattle', 'Buffalo', 'Goat', 'Sheep', 'Poultry', 'Pig'].map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(), onChanged: (value) => setState(() => _species = value!)),
+          DropdownButtonFormField<String>(initialValue: _species, decoration: const InputDecoration(labelText: 'Animal species', border: OutlineInputBorder()), items: ['Cattle', 'Buffalo', 'Goat', 'Sheep', 'Poultry', 'Pig'].map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(), onChanged: (value) => setState(() => _species = value!)),
           const SizedBox(height: 12),
           SurveyField(controller: _count, label: 'Animal count', keyboardType: TextInputType.number), const SizedBox(height: 12),
           SurveyField(controller: _farmer, label: 'Farmer name'), const SizedBox(height: 12),

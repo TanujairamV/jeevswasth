@@ -15,8 +15,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  FirebaseAuth? _auth;
+  GoogleSignIn? _googleSignIn;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
@@ -27,10 +27,17 @@ class _LoginPageState extends State<LoginPage> {
   bool _isInitialized = false;
   bool _isSigningIn = false;
 
+  bool get _isLinux =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.linux;
+
   @override
   void initState() {
     super.initState();
-    _initializeGoogleSignIn();
+    if (!_isLinux) {
+      _auth = FirebaseAuth.instance;
+      _googleSignIn = GoogleSignIn.instance;
+      _initializeGoogleSignIn();
+    }
   }
 
   @override
@@ -41,12 +48,15 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _initializeGoogleSignIn() async {
-    if (kIsWeb || _isInitializing || _isInitialized) return;
+    if (_isLinux || kIsWeb || _isInitializing || _isInitialized) return;
+
+    final GoogleSignIn? googleSignIn = _googleSignIn;
+    if (googleSignIn == null) return;
 
     _isInitializing = true;
 
     try {
-      await _googleSignIn.initialize();
+      await googleSignIn.initialize();
       _isInitialized = true;
     } catch (e) {
       debugPrint('Google Sign-In initialization failed: $e');
@@ -58,13 +68,29 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _handleGoogleSignIn() async {
     if (_isSigningIn) return;
 
+    if (_isLinux) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Google Sign-In is unavailable on Linux. Use a demo role above.',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final FirebaseAuth? auth = _auth;
+    final GoogleSignIn? googleSignIn = _googleSignIn;
+    if (auth == null || googleSignIn == null) return;
+
     setState(() => _isSigningIn = true);
 
     try {
       late final UserCredential credential;
 
       if (kIsWeb) {
-        credential = await _auth.signInWithPopup(GoogleAuthProvider());
+        credential = await auth.signInWithPopup(GoogleAuthProvider());
       } else {
         await _initializeGoogleSignIn();
 
@@ -74,14 +100,14 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
 
-        if (!_googleSignIn.supportsAuthenticate()) {
+        if (!googleSignIn.supportsAuthenticate()) {
           throw UnsupportedError(
             'Google Sign-In is unavailable on this platform.',
           );
         }
 
         final GoogleSignInAccount account =
-            await _googleSignIn.authenticate();
+            await googleSignIn.authenticate();
 
         final String? idToken = account.authentication.idToken;
 
@@ -91,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
 
-        credential = await _auth.signInWithCredential(
+        credential = await auth.signInWithCredential(
           GoogleAuthProvider.credential(idToken: idToken),
         );
       }
