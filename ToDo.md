@@ -28,7 +28,7 @@ Deliver a practical, scalable livestock-health surveillance and decision-support
 
 ### Current architecture, based on evidence
 
-The repository currently contains a Flutter UI prototype with role-themed screens, Firebase/Google authentication setup, a functional-looking field-worker GPS/survey flow backed by local key-value storage, and a NestJS starter application exposing only `GET /` → `Hello World!`. The frontend does not call the backend: `_verifyWithBackend` only logs that verification is not connected. There is no server-side domain model, API contract, database, synchronization worker, notification service, AI service, risk engine, or official dashboard implementation.
+The repository currently contains a Flutter UI prototype with role-themed screens, Firebase/Google authentication setup, a field-worker GPS/survey flow backed by local key-value storage, and a NestJS backend. The field-worker survey now best-effort submits to a versioned reports endpoint after local save. Authentication, durable server persistence, and a general synchronization worker remain absent.
 
 ### Verified implemented elements
 
@@ -40,6 +40,8 @@ The repository currently contains a Flutter UI prototype with role-themed screen
 - Local survey serialization and `SharedPreferences` storage in `frontend/lib/field_worker/models/livestock_survey.dart` and `data/livestock_survey_repository.dart`.
 - Android location permissions and Firebase Android configuration.
 - Backend NestJS bootstrap, starter controller/service, unit/e2e test scaffolding, and Android build workflow.
+- Prototype `POST /api/v1/reports` validation, response IDs, and isolated in-memory report storage in `backend/src/reports/`.
+- Flutter reports API client and best-effort submission flow that preserves the locally saved survey on API failure.
 - AI dataset schema guidance, sample dataset files, and static validation script.
 
 ### Partial, placeholder, or unverified elements
@@ -47,7 +49,7 @@ The repository currently contains a Flutter UI prototype with role-themed screen
 - Google/Firebase sign-in is implemented on the client, but backend token verification is explicitly not connected.
 - Role routing is demo-only: the email field is treated as a role string and several roles route to `FieldWorkerHome`.
 - Farmer, veterinarian, and surveillance screens contain hard-coded presentation data and placeholder actions. `veterinarian/home.dart` and `surveillance/home.dart` are empty files.
-- Offline survey saving exists, but sync status is never advanced and there is no upload, retry, conflict resolution, or server queue.
+- Offline survey saving and prototype upload exist, but sync status is not advanced, and there is no retry queue, conflict resolution, authentication, or durable server persistence.
 - GPS is cached locally and reverse-geocoded where possible, but there is no server geospatial pipeline or risk map.
 - Notification icons and alert cards are UI-only; no notification transport or advisory backend exists.
 - AI datasets exist, but there is no trained/deployed/integrated model and the guidelines explicitly prohibit disease inference, risk scoring, and outbreak declaration.
@@ -159,8 +161,9 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 - [x] **P1** Capture location permission, current coordinates, timestamp, reverse-geocoded address, and last saved fallback in `frontend/lib/field_worker/home.dart`.
 - [x] **P1** Capture a structured survey with species, count, farmer/contact, village, symptoms, signs, notes, and optional coordinates in `livestock_survey_page.dart`.
 - [x] **P1** Persist surveys locally as JSON in `SharedPreferences` through `LivestockSurveyRepository`.
-- [ ] **P0** Replace local-only storage with an encrypted/durable offline database and a sync queue.
-- [ ] **P0** Implement authenticated upload, idempotency keys, retry/backoff, conflict handling, and server acknowledgement.
+- [ ] **P0** Replace local-only storage with an encrypted/durable offline database and a durable sync queue.
+- [ ] **[PARTIAL]** Implement authenticated upload, idempotency keys, retry/backoff, conflict handling, and durable server acknowledgement; this prototype now saves locally first, submits with explicit Saving/Submitting/Submitted/Submission Failed states, supports retry with the same local ID, and displays the in-memory report ID.
+- [x] **P1** Connect the prototype survey submission to `POST /api/v1/reports` with explicit API host configuration: Linux uses `localhost`, Android emulator uses `10.0.2.2`, and physical Android devices require `--dart-define=JEEVSWASTH_ANDROID_API_HOST=<LAN_HOST>` or `JEEVSWASTH_API_BASE_URL=<URL>`.
 - [ ] **P1** Add mortality counts, vaccination/treatment observations, animal tags, photos, samples, and structured clinical metadata.
 - [ ] **P1** Implement assigned farm visits, route planning, visit completion, and supervisor review instead of hard-coded cards.
 - [ ] **P2** Add geocoding privacy controls, location accuracy display, consent, and coordinate redaction where required.
@@ -200,7 +203,7 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 **Objective:** Replace the NestJS starter endpoint with a modular domain API.
 
 - [x] **P1** Retain NestJS bootstrap in `backend/src/main.ts` and starter root controller/service as the current baseline.
-- [ ] **P0** Create modules/controllers/services/DTOs for identity, profiles, animals, herds, reports, cases, visits, vaccinations, treatments, samples, advisories, alerts, and analytics.
+- [ ] **[PARTIAL]** Create modules/controllers/services/DTOs for identity, profiles, animals, herds, reports, cases, visits, vaccinations, treatments, samples, advisories, alerts, and analytics; only the prototype reports controller/service exists.
 - [ ] **P0** Add DTO validation, consistent error envelopes, pagination, filtering, sorting, correlation IDs, and API versioning.
 - [ ] **P0** Add auth and role/geography guards to every protected route.
 - [ ] **P1** Implement transactional report/case state transitions and idempotent sync endpoints.
@@ -314,7 +317,7 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 - [ ] **P0** Implement an outbox with immutable client event IDs, ordering, retries, backoff, and dead-letter/error review.
 - [ ] **P0** Implement server-side idempotency and conflict policy for edits made on multiple devices.
 - [ ] **P1** Sync attachments separately with resumable upload and local retention limits.
-- [ ] **P1** Show true pending/synced/failed states; current `SurveySyncStatus` is stored but no sync transition exists.
+- [ ] **[PARTIAL]** Show true pending/synced/failed states; the survey submission prototype now transitions local status for this foreground request, but has no background queue.
 - [ ] **P1** Add connectivity detection, manual retry, background sync, and safe logout/device change behavior.
 - [ ] **P2** Define data retention/encryption behavior for lost or shared devices.
 

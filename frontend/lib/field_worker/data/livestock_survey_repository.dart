@@ -6,7 +6,9 @@ class LivestockSurveyRepository {
 
   Future<List<LivestockSurvey>> getAll() async {
     final preferences = await SharedPreferences.getInstance();
-    final surveys = decodeSurveys(preferences.getString(_storageKey));
+    final surveys = List<LivestockSurvey>.from(
+      decodeSurveys(preferences.getString(_storageKey)),
+    );
     surveys.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return surveys;
   }

@@ -31,6 +31,21 @@ class LivestockSurvey {
   final DateTime createdAt;
   final SurveySyncStatus syncStatus;
 
+  LivestockSurvey copyWith({SurveySyncStatus? syncStatus}) => LivestockSurvey(
+        id: id,
+        species: species,
+        animalCount: animalCount,
+        farmerName: farmerName,
+        farmerPhone: farmerPhone,
+        village: village,
+        location: location,
+        symptoms: symptoms,
+        clinicalSigns: clinicalSigns,
+        notes: notes,
+        createdAt: createdAt,
+        syncStatus: syncStatus ?? this.syncStatus,
+      );
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'species': species,
