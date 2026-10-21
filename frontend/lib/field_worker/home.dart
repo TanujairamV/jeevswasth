@@ -2,6 +2,9 @@ import 'package:geocoding/geocoding.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'data/livestock_survey_repository.dart';
+import 'livestock_survey_page.dart';
+import 'models/livestock_survey.dart';
 
 class _LocationProblem implements Exception {
   const _LocationProblem(this.message);
@@ -23,12 +26,27 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
   DateTime? _locationTimestamp;
   String _gpsStatus = 'Checking GPS…';
   bool _isRefreshingLocation = false;
+  final _surveyRepository = LivestockSurveyRepository();
+  List<LivestockSurvey> _surveys = const [];
 
   @override
   void initState() {
     super.initState();
     _loadSavedLocation();
     _refreshLocation();
+    _loadSurveys();
+  }
+
+  Future<void> _loadSurveys() async {
+    final surveys = await _surveyRepository.getAll();
+    if (mounted) setState(() => _surveys = surveys);
+  }
+
+  Future<void> _openSurvey() async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const LivestockSurveyPage()),
+    );
+    if (saved == true) _loadSurveys();
   }
 
   Future<void> _loadSavedLocation() async {
@@ -180,7 +198,7 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
           children: [
             const Center(child: Text('Hub')),
             _dashboard(context),
-            const Center(child: Text('Surveys')),
+            _surveysView(context),
             const Center(child: Text('Alerts')),
           ],
         ),
@@ -469,7 +487,7 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
               Icons.assignment_add,
               'Start Survey',
               'Checklist & Triage',
-              () => showMessage('Survey form coming soon.'),
+              _openSurvey,
             ),
             _action(
               context,
@@ -576,6 +594,37 @@ class _FieldWorkerHomeState extends State<FieldWorkerHome> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _surveysView(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return RefreshIndicator(
+      onRefresh: () async => _loadSurveys(),
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Row(children: [
+            Expanded(child: Text('Saved surveys', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800))),
+            FilledButton.icon(onPressed: _openSurvey, icon: const Icon(Icons.add), label: const Text('New')),
+          ]),
+          const SizedBox(height: 8),
+          Text('Surveys remain available offline until they are synced.', style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 16),
+          if (_surveys.isEmpty)
+            Card(child: Padding(padding: const EdgeInsets.all(24), child: Column(children: [Icon(Icons.assignment_outlined, size: 48, color: colors.primary), const SizedBox(height: 12), const Text('No saved surveys yet'), const SizedBox(height: 12), OutlinedButton(onPressed: _openSurvey, child: const Text('Start first survey'))])))
+          else
+            ..._surveys.map((survey) => Card(
+                  child: ListTile(
+                    leading: CircleAvatar(backgroundColor: colors.primaryContainer, child: Icon(Icons.pets, color: colors.onPrimaryContainer)),
+                    title: Text('${survey.species} • ${survey.animalCount} animals', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text('${survey.farmerName} • ${survey.village}\n${survey.createdAt.toLocal()}'),
+                    isThreeLine: true,
+                    trailing: Chip(avatar: Icon(survey.syncStatus == SurveySyncStatus.synced ? Icons.cloud_done : Icons.cloud_off, size: 16), label: Text(survey.syncStatus == SurveySyncStatus.synced ? 'Synced' : 'Pending')),
+                  ),
+                )),
+        ],
+      ),
     );
   }
 
