@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
-import '../widgets/farmer_navbar.dart';
 
+import '../widgets/farmer_navbar.dart';
+import 'reporting/livestock_survey_page.dart';
 
 class FarmerHome extends StatefulWidget {
   const FarmerHome({super.key});
@@ -12,6 +12,12 @@ class FarmerHome extends StatefulWidget {
 
 class _FarmerHomeState extends State<FarmerHome> {
   int selectedIndex = 0;
+
+  Future<void> _openHealthReport() async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const LivestockSurveyPage()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +30,7 @@ class _FarmerHomeState extends State<FarmerHome> {
         child: IndexedStack(
           index: selectedIndex,
           children: [
-            _FarmerDashboard(),
+            _FarmerDashboard(onHealthReport: _openHealthReport),
             _PlaceholderPage(
               title: 'My Animals',
               subtitle: 'View livestock records and vaccination history.',
@@ -32,8 +38,10 @@ class _FarmerHomeState extends State<FarmerHome> {
             ),
             _PlaceholderPage(
               title: 'Surveys',
-              subtitle: 'Record field observations and animal health data.',
+              subtitle: 'Submit livestock health and mortality reports.',
               icon: Icons.assignment,
+              actionLabel: 'Start health report',
+              onAction: _openHealthReport,
             ),
             _PlaceholderPage(
               title: 'Alerts',
@@ -54,7 +62,9 @@ class _FarmerHomeState extends State<FarmerHome> {
 }
 
 class _FarmerDashboard extends StatelessWidget {
-  const _FarmerDashboard();
+  const _FarmerDashboard({required this.onHealthReport});
+
+  final VoidCallback onHealthReport;
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +91,10 @@ class _FarmerDashboard extends StatelessWidget {
               SizedBox(height: 4),
               Text(
                 'Tapped profiles show vaccine records & history',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
               SizedBox(height: 12),
               _AnimalCard(
@@ -128,7 +141,9 @@ class _FarmerDashboard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLow,
         border: Border(
-          bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
       ),
       child: Row(
@@ -161,19 +176,22 @@ class _FarmerDashboard extends StatelessWidget {
                 ),
                 Text(
                   'Surveillance Dashboard',
-                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: Icon(Icons.notifications_none),
-          ),
+          IconButton(onPressed: () {}, icon: Icon(Icons.notifications_none)),
           CircleAvatar(
             radius: 17,
             backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-            child: Icon(Icons.person, color: Theme.of(context).colorScheme.primary),
+            child: Icon(
+              Icons.person,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ],
       ),
@@ -204,7 +222,10 @@ class _FarmerDashboard extends StatelessWidget {
                   Flexible(
                     child: Text(
                       'Bilaspur, Karnal • Haryana',
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ],
@@ -240,12 +261,19 @@ class _FarmerDashboard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.circle, color: Theme.of(context).colorScheme.error, size: 10),
+          Icon(
+            Icons.circle,
+            color: Theme.of(context).colorScheme.error,
+            size: 10,
+          ),
           SizedBox(width: 7),
           Expanded(
             child: Text.rich(
               TextSpan(
-                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
                 children: [
                   TextSpan(text: '12 Animals Monitored • '),
                   TextSpan(
@@ -348,13 +376,7 @@ class _FarmerDashboard extends StatelessWidget {
             children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Health report form coming soon.'),
-                      ),
-                    );
-                  },
+                  onPressed: onHealthReport,
                   style: FilledButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.surface,
                     foregroundColor: Theme.of(context).colorScheme.primary,
@@ -378,12 +400,13 @@ class _FarmerDashboard extends StatelessWidget {
                 child: IconButton(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Voice reporting coming soon.'),
-                      ),
+                      SnackBar(content: Text('Voice reporting coming soon.')),
                     );
                   },
-                  icon: Icon(Icons.mic_none, color: Theme.of(context).colorScheme.surface),
+                  icon: Icon(
+                    Icons.mic_none,
+                    color: Theme.of(context).colorScheme.surface,
+                  ),
                 ),
               ),
             ],
@@ -399,10 +422,7 @@ class _FarmerDashboard extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
           ),
         ),
         Text(trailing, style: TextStyle(fontSize: 11)),
@@ -507,13 +527,13 @@ class _FarmerDashboard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _Pill('Under Review', color: Theme.of(context).colorScheme.tertiaryContainer),
+              _Pill(
+                'Under Review',
+                color: Theme.of(context).colorScheme.tertiaryContainer,
+              ),
               SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  'Case #JVS-9821',
-                  style: TextStyle(fontSize: 11),
-                ),
+                child: Text('Case #JVS-9821', style: TextStyle(fontSize: 11)),
               ),
               Text('2 hours ago', style: TextStyle(fontSize: 10)),
             ],
@@ -534,7 +554,9 @@ class _FarmerDashboard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+                  backgroundColor: Theme.of(context)
+                      .colorScheme
+                      .secondaryContainer,
                   child: Icon(
                     Icons.medical_services_outlined,
                     color: Theme.of(context).colorScheme.primary,
@@ -586,7 +608,10 @@ class _FarmerDashboard extends StatelessWidget {
         children: [
           CircleAvatar(
             backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-            child: Icon(Icons.check_circle_outline, color: Theme.of(context).colorScheme.primary),
+            child: Icon(
+              Icons.check_circle_outline,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
           SizedBox(width: 10),
           Expanded(
@@ -599,7 +624,10 @@ class _FarmerDashboard extends StatelessWidget {
                 ),
                 Text(
                   'Case #JVS-8410 • Completed & Logged',
-                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -622,7 +650,11 @@ class _FarmerDashboard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.support_agent, size: 27, color: Theme.of(context).colorScheme.primary),
+              Icon(
+                Icons.support_agent,
+                size: 27,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               SizedBox(width: 9),
               Expanded(
                 child: Column(
@@ -634,7 +666,10 @@ class _FarmerDashboard extends StatelessWidget {
                     ),
                     Text(
                       'Toll-free 24/7 National Kisan Helpline',
-                      style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -658,9 +693,7 @@ class _FarmerDashboard extends StatelessWidget {
                     foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   ),
                   icon: Icon(Icons.call, size: 17),
-                  label: FittedBox(
-                    child: Text('Call 1800-180-1551'),
-                  ),
+                  label: FittedBox(child: Text('Call 1800-180-1551')),
                 ),
               ),
               SizedBox(width: 8),
@@ -698,7 +731,9 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isRed ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary;
+    final color = isRed
+        ? Theme.of(context).colorScheme.error
+        : Theme.of(context).colorScheme.primary;
 
     return Container(
       height: 105,
@@ -777,7 +812,9 @@ class _AnimalCard extends StatelessWidget {
             Container(
               width: 5,
               decoration: BoxDecoration(
-                color: warning ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary,
+                color: warning
+                    ? Theme.of(context).colorScheme.error
+                    : Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.horizontal(
                   left: Radius.circular(17),
                 ),
@@ -787,7 +824,11 @@ class _AnimalCard extends StatelessWidget {
             CircleAvatar(
               radius: 26,
               backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-              child: Icon(Icons.pets, color: Theme.of(context).colorScheme.primary, size: 27),
+              child: Icon(
+                Icons.pets,
+                color: Theme.of(context).colorScheme.primary,
+                size: 27,
+              ),
             ),
             SizedBox(width: 10),
             Expanded(
@@ -811,7 +852,9 @@ class _AnimalCard extends StatelessWidget {
                           status,
                           color: warning
                               ? Theme.of(context).colorScheme.errorContainer
-                              : Theme.of(context).colorScheme.secondaryContainer,
+                              : Theme.of(context)
+                                    .colorScheme
+                                    .secondaryContainer,
                         ),
                       ],
                     ),
@@ -821,7 +864,9 @@ class _AnimalCard extends StatelessWidget {
                     Text(
                       note,
                       style: TextStyle(
-                        color: warning ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurface,
+                        color: warning
+                            ? Theme.of(context).colorScheme.error
+                            : Theme.of(context).colorScheme.onSurface,
                         fontSize: 10,
                       ),
                     ),
@@ -833,8 +878,16 @@ class _AnimalCard extends StatelessWidget {
               padding: EdgeInsets.only(left: 4, right: 10),
               child: CircleAvatar(
                 radius: 18,
-                backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-                child: Icon(icon, size: 19, color: warning ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary),
+                backgroundColor: Theme.of(context)
+                    .colorScheme
+                    .secondaryContainer,
+                child: Icon(
+                  icon,
+                  size: 19,
+                  color: warning
+                      ? Theme.of(context).colorScheme.error
+                      : Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
           ],
@@ -870,11 +923,15 @@ class _PlaceholderPage extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   const _PlaceholderPage({
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.actionLabel,
+    this.onAction,
   });
 
   @override
@@ -888,7 +945,11 @@ class _PlaceholderPage extends StatelessWidget {
             CircleAvatar(
               radius: 35,
               backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-              child: Icon(icon, size: 34, color: Theme.of(context).colorScheme.primary),
+              child: Icon(
+                icon,
+                size: 34,
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
             SizedBox(height: 16),
             Text(
@@ -901,6 +962,14 @@ class _PlaceholderPage extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(subtitle, textAlign: TextAlign.center),
+            if (actionLabel != null && onAction != null) ...[
+              SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: onAction,
+                icon: Icon(Icons.add_circle_outline),
+                label: Text(actionLabel!),
+              ),
+            ],
           ],
         ),
       ),

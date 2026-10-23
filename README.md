@@ -30,9 +30,9 @@
 
 **JEEVSWASTH** is a health-tech prototype created for the Smart India Hackathon 2026 problem on early detection, prevention, and management of livestock diseases and animal-health issues.
 
-The project brings together a Flutter mobile client, a NestJS API foundation, Firebase-based sign-in, field-worker GPS and survey capture, local-first persistence, and an AI dataset preparation area. Its long-term goal is to connect farmers, field workers, veterinarians, laboratories, and government officials through one evidence-grounded surveillance workflow.
+The project brings together a Flutter mobile client, a NestJS API foundation, Firebase-based sign-in, farmer GPS and health-report capture, local-first persistence, and an AI dataset preparation area. Its long-term goal is to connect farmers, veterinarians, laboratories, and government officials through one evidence-grounded surveillance workflow.
 
-> **Current status:** The repository is an active prototype. The field-worker survey flow and prototype reports endpoint are implemented, while durable server persistence, full role workflows, background synchronization, clinical governance, and production deployment remain in progress.
+> **Current status:** The repository is an active prototype. The farmer health-report flow and prototype reports endpoint are implemented, while durable server persistence, full role workflows, background synchronization, clinical governance, and production deployment remain in progress.
 
 ---
 
@@ -44,7 +44,7 @@ The project brings together a Flutter mobile client, a NestJS API foundation, Fi
 | <img src="https://api.iconify.design/lucide:map-pin.svg?color=%2300E5FF" width="20" height="20" /> | **GPS & Location Context** | Request location permission, show coordinates, reverse-geocode the current position, and retain a last-known fallback locally. |
 | <img src="https://api.iconify.design/lucide:save.svg?color=%23C6F100" width="20" height="20" /> | **Local-First Capture** | Save surveys as JSON through `SharedPreferences` before attempting network submission, reducing data loss during field work. |
 | <img src="https://api.iconify.design/lucide:send.svg?color=%2324A1DE" width="20" height="20" /> | **Prototype Report API** | Submit saved surveys to versioned `POST /api/v1/reports` and display explicit saving, submitting, submitted, and failed states. |
-| <img src="https://api.iconify.design/lucide:users.svg?color=%23FFB4A2" width="20" height="20" /> | **Role-Oriented UI** | Flutter navigation foundations exist for farmers, field workers, veterinarians, and surveillance officials. Several role experiences are still prototypes. |
+| <img src="https://api.iconify.design/lucide:users.svg?color=%23FFB4A2" width="20" height="20" /> | **Role-Oriented UI** | Flutter navigation foundations exist for farmers, veterinarians, and surveillance officials. Several role experiences are still prototypes. |
 | <img src="https://api.iconify.design/lucide:shield-check.svg?color=%23C6F100" width="20" height="20" /> | **Authentication Foundation** | Firebase and Google sign-in client paths are present; server-side token verification and authorization are planned next. |
 | <img src="https://api.iconify.design/lucide:brain-circuit.svg?color=%23C6F100" width="20" height="20" /> | **AI-Ready Dataset Layer** | Includes schema guidance, safety constraints, train/validation/test JSONL files, and a static validator for structured extraction work. |
 
