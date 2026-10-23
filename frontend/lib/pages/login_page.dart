@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../farmer/home.dart';
-import '../field_worker/home.dart';
+import '../veterinarian/home.dart';
+import '../surveillance/home.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -220,12 +221,16 @@ class _LoginPageState extends State<LoginPage> {
         return const FarmerHome();
       case 'vet':
       case 'veterinarian':
-      case 'field worker':
-      case 'field_worker':
+      case 'veterinary officer':
+      case 'veterinary_officer':
+        return const VeterinarianHome();
       case 'surveillance officer':
       case 'surveillance_officer':
       case 'officer':
-        return const FieldWorkerHome();
+      case 'government official':
+      case 'government_official':
+      case 'surveillance official':
+        return const SurveillanceHome();
       default:
         return null;
     }
@@ -427,19 +432,6 @@ class _LoginPageState extends State<LoginPage> {
                         onPressed: _isSigningIn ? null : () => _openDemoRole('veterinarian'),
                         icon: const Icon(Icons.medical_services_outlined),
                         label: const Text('Test Veterinarian'),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(54),
-                          side: BorderSide(color: colors.outlineVariant),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _isSigningIn ? null : () => _openDemoRole('field worker'),
-                        icon: const Icon(Icons.assignment_outlined),
-                        label: const Text('Test Field Worker'),
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(54),
                           side: BorderSide(color: colors.outlineVariant),

@@ -14,30 +14,48 @@
 
 ### Objective
 
-Deliver a practical, scalable livestock-health surveillance and decision-support system that captures farmer and field-worker reports, maintains animal/herd health history, supports veterinary review and referral, detects spatial/temporal risk early, and delivers preventive advisories to farmers and government officials, including in low-connectivity settings.
+Deliver a practical, scalable livestock-health surveillance and decision-support system that captures farmer reports, maintains animal/herd health history, supports veterinary review and referral, detects spatial/temporal risk early, and delivers preventive advisories to farmers and government officials, including in low-connectivity settings.
+
+### Requested capability coverage — review added 22 October 2026
+
+The requested product scope is broadly represented across the phases below, but most items remain planned rather than implemented. The following explicit checklist closes the few scope terms that were previously implicit:
+
+- [ ] **P0** Define animal-health risk assessment outputs: risk level, contributing evidence, time window, geography, affected species/herds, confidence/limitations, owner, and human-review status. Do not present unconfirmed risk as diagnosis or outbreak fact.
+- [ ] **P1** Add explainable risk analysis and graph views for animal, herd, symptom, mortality, vaccination, treatment, geography, weather, historical disease, referral, and response relationships. Include drill-down from an aggregate signal to authorized source reports.
+- [ ] **P1** Add herd-level vaccination and treatment history dashboards, including coverage, missed preventive care, treatment outcomes, repeat symptoms, and longitudinal timelines.
+- [ ] **P0** Implement fast-spreading-disease early warnings with thresholds, time-window comparison, minimum-data safeguards, deduplication, acknowledgement, escalation, and explicit suspected/watchlist/confirmed states.
+- [ ] **P1** Model preventive measures and coordinated response plans: quarantine/biosecurity, vaccination campaigns, treatment follow-up, sample collection, referral, task assignment, response owner, SLA, and closure evidence.
+- [ ] **P0** Support symptom and mortality reports as first-class inputs, including affected/dead counts, onset, species/herd, location, attachments, source, consent, and offline queue state.
+- [ ] **P1** Provide geospatial risk mapping with privacy-safe aggregation, village/block/district boundaries, hotspots, report density, vaccination coverage, response actions, stale-data indicators, and authorized drill-down.
+- [ ] **P2** Add weather and historical disease-trend inputs through documented adapters with source, timestamp, freshness, provenance, and failure/absence states.
+- [ ] **P1** Provide reviewed multilingual UI, reports, advisories, risk explanations, and accessibility support; define the initial language set and translation ownership before release.
+- [ ] **P1** Add sample collection and laboratory workflow: specimen metadata, barcode/kit, chain of custody, cold-chain checks, referral, result import, veterinarian review, and case linkage.
+- [ ] **P0** Complete veterinarian and official dashboards for queue/triage, risk signals, vaccination/treatment history, maps, preventive actions, referrals, outbreak watchlists, and coordinated response.
+- [ ] **P1** Define helpline and offline-enabled channels, including local save, retry queue, SMS/IVR or approved fallback contact, assisted reporting, emergency escalation, and clear stale/sync status.
+- [ ] **P1** Define supported mobile and web experiences separately, including responsive layouts, browser/device capability limits, offline behavior, authentication, and release acceptance criteria.
+- [ ] **P0** Measure outcomes without unsupported claims: reporting time, review time, containment time, treatment/referral turnaround, vaccination coverage, mortality, alert precision/recall, preventive-action completion, and evidence-based planning use.
 
 ### Technology stack discovered
 
 - **Frontend:** Flutter/Dart package under `frontend/`, Dart SDK constraint `^3.13.4`.
 - **Frontend packages:** Material 3, `dynamic_color`, `firebase_core`, `firebase_auth`, `google_sign_in`, `geolocator`, `geocoding`, `shared_preferences`, `material_ui`, Font Awesome.
 - **Backend:** NestJS 12 / TypeScript ESM under `backend/`, Express platform, RxJS, Firebase Admin dependency, Nest Observe instrumentation.
-- **Database:** No configured PostgreSQL, other SQL database, ORM, entities, migrations, repositories, or persistence module was found in the inspected repository. Current field-worker persistence is local `SharedPreferences` only.
+- **Database:** No configured PostgreSQL, other SQL database, ORM, entities, migrations, repositories, or persistence module was found in the inspected repository. Current farmer-report persistence is local `SharedPreferences` only.
 - **AI:** `ai/` contains annotation guidance, JSONL train/validation/test datasets, and a dataset validator. No model implementation, training script, inference service, API, or deployment code was found.
 - **CI/CD:** `.github/workflows/android-build.yml` builds/analyzes/releases an Android APK when manually dispatched or when a commit message contains `--build`.
 - **Platforms:** Android and Linux Flutter runner configuration are present; web and macOS artifacts are also present in the Flutter project. Linux intentionally skips Firebase initialization in `frontend/lib/main.dart`.
 
 ### Current architecture, based on evidence
 
-The repository currently contains a Flutter UI prototype with role-themed screens, Firebase/Google authentication setup, a field-worker GPS/survey flow backed by local key-value storage, and a NestJS backend. The field-worker survey now best-effort submits to a versioned reports endpoint after local save. Authentication, durable server persistence, and a general synchronization worker remain absent.
+The repository currently contains a Flutter UI prototype with role-themed screens, Firebase/Google authentication setup, a farmer GPS/health-report flow backed by local key-value storage, and a NestJS backend. The farmer report now best-effort submits to a versioned reports endpoint after local save. Authentication, durable server persistence, and a general synchronization worker remain absent.
 
 ### Verified implemented elements
 
 - Flutter project and Material 3 theme abstraction in `frontend/lib/theme/app_theme.dart`.
 - Dynamic color setup and platform-aware Firebase initialization in `frontend/lib/main.dart`.
 - Firebase Android configuration files and Google sign-in code path in `frontend/lib/pages/login_page.dart`.
-- Field-worker GPS permission/service handling, coordinate display, reverse geocoding fallback, and cached last location in `frontend/lib/field_worker/home.dart`.
-- Field-worker livestock survey form with species, count, farmer, village, symptoms, clinical signs, notes, and optional GPS in `frontend/lib/field_worker/livestock_survey_page.dart`.
-- Local survey serialization and `SharedPreferences` storage in `frontend/lib/field_worker/models/livestock_survey.dart` and `data/livestock_survey_repository.dart`.
+- Farmer health-report form with species, count, farmer, village, symptoms, clinical signs, notes, and optional GPS in `frontend/lib/farmer/reporting/livestock_survey_page.dart`.
+- Local report serialization and `SharedPreferences` storage in `frontend/lib/farmer/reporting/models/livestock_survey.dart` and `data/livestock_survey_repository.dart`.
 - Android location permissions and Firebase Android configuration.
 - Backend NestJS bootstrap, starter controller/service, unit/e2e test scaffolding, and Android build workflow.
 - Prototype `POST /api/v1/reports` validation, response IDs, and isolated in-memory report storage in `backend/src/reports/`.
@@ -47,10 +65,10 @@ The repository currently contains a Flutter UI prototype with role-themed screen
 ### Partial, placeholder, or unverified elements
 
 - Google/Firebase sign-in is implemented on the client, but backend token verification is explicitly not connected.
-- Role routing is demo-only: the email field is treated as a role string and several roles route to `FieldWorkerHome`.
-- Farmer, veterinarian, and surveillance screens contain hard-coded presentation data and placeholder actions. `veterinarian/home.dart` and `surveillance/home.dart` are empty files.
+- Role routing is demo-only: the email field is treated as a role string; it routes only to Farmer, Veterinarian, or Surveillance dashboards.
+- Farmer screens contain hard-coded presentation data and placeholder actions. Farmer reporting is the owner of the existing livestock survey, local-first save, GPS capture, and best-effort API submission flow. The veterinarian dashboard now has explicitly labeled, isolated fictional fixtures and session-only controls; it is not connected to clinical backend services. `surveillance/home.dart` now has the requested monitoring-oriented shell and sample visualizations, but remains demo telemetry rather than live analytics.
 - Offline survey saving and prototype upload exist, but sync status is not advanced, and there is no retry queue, conflict resolution, authentication, or durable server persistence.
-- GPS is cached locally and reverse-geocoded where possible, but there is no server geospatial pipeline or risk map.
+- GPS coordinates are captured in the farmer report payload and cached locally where available, but there is no server geospatial pipeline, veterinarian report-location view, or surveillance risk map.
 - Notification icons and alert cards are UI-only; no notification transport or advisory backend exists.
 - AI datasets exist, but there is no trained/deployed/integrated model and the guidelines explicitly prohibit disease inference, risk scoring, and outbreak declaration.
 - CI/CD configuration exists but runtime build/release success was not verified.
@@ -71,7 +89,7 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 ### Recommended next three implementation tasks
 
 1. **P0:** Define and implement the backend foundation: environment configuration, Firebase ID-token guard, roles, PostgreSQL schema/migrations, health checks, and versioned API contracts.
-2. **P0/P1:** Connect the existing field-worker survey to authenticated backend create/read/sync endpoints with durable local queue, retry, idempotency, and visible sync errors.
+2. **P0/P1:** Connect the existing farmer health-report flow to authenticated backend create/read/sync endpoints with durable local queue, retry, idempotency, and visible sync errors.
 3. **P1:** Turn the farmer report prototype into a real end-to-end case workflow: symptom/mortality submission → triage status → veterinarian review → advisory/escalation.
 
 ## Status and priority legend
@@ -101,9 +119,9 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 
 ## Phase 2 — Product requirements and user roles
 
-**Objective:** Convert SIH requirements into testable workflows for farmers, field workers, veterinarians, and officials.
+**Objective:** Convert SIH requirements into testable workflows for farmers, veterinarians, and surveillance officials.
 
-- [ ] **P0** Define role capabilities and least-privilege permissions for farmer, field worker, veterinarian, district/block official, administrator, and laboratory user.
+- [ ] **P0** Define role capabilities and least-privilege permissions for farmer, veterinarian, surveillance official, administrator, and laboratory user.
 - [ ] **P0** Define report lifecycle states: draft, queued, submitted, triaged, assigned, under review, referred, resolved, rejected, and escalated.
 - [ ] **P0** Define the minimum required fields for symptom, mortality, vaccination, treatment, sample, and herd reports.
 - [ ] **P1** Define escalation SLAs and notification ownership by village, block, district, and state.
@@ -119,7 +137,8 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 - [x] **P1** Keep centralized Material 3 and dynamic-color theming in `frontend/lib/theme/app_theme.dart` and `frontend/lib/main.dart`.
 - [ ] **P1** Introduce real app routing with authenticated route guards instead of direct demo `MaterialPageRoute` role navigation.
 - [ ] **P1** Add consistent loading, empty, error, retry, offline, queued, and permission-denied states.
-- [ ] **P1** Replace empty `veterinarian/home.dart` and `surveillance/home.dart` with role-specific navigation shells.
+- [x] **P1** Implement veterinarian demo navigation shell with Hub, Animals, Surveys, and Alerts; veterinarian role aliases now open `VeterinarianHome` rather than `FieldWorkerHome`.
+- [ ] **P1** Implement the remaining surveillance navigation shell and authenticated role guards.
 - [ ] **P1** Replace placeholder pages in `frontend/lib/farmer/home.dart` with feature routes backed by repositories.
 - [ ] **P2** Centralize typography, spacing, date/time formatting, status colors, and accessible contrast rules.
 - [ ] **P2** Add localization infrastructure; do not hard-code Hindi/Haryanvi claims until translations are reviewed.
@@ -151,32 +170,40 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 - [ ] **P1** Implement case tracking, assigned veterinarian details, status history, and farmer-visible advisories.
 - [ ] **P2** Implement farmer vaccination/treatment history and upcoming preventive-care reminders.
 - [ ] **P2** Add farmer edit/correction rules that preserve an audit trail.
+- [ ] **P1** Add a farmer-owned submitted-reports view with local/server status, report IDs, retry state, and veterinarian-visible case updates.
 
 **Acceptance criteria:** A farmer can submit a valid report, receive a case ID, see status changes, and view records only for owned/authorized herds.
 
-## Phase 6 — Field-worker workflows, GPS and field reporting
+## Phase 6 — Farmer reporting, GPS and offline capture
 
-**Objective:** Turn the existing survey/GPS prototype into a reliable field data-collection workflow.
+**Objective:** Turn the existing survey/GPS prototype into a reliable farmer health-reporting workflow. A separate field-worker product role is out of scope.
 
-- [x] **P1** Capture location permission, current coordinates, timestamp, reverse-geocoded address, and last saved fallback in `frontend/lib/field_worker/home.dart`.
-- [x] **P1** Capture a structured survey with species, count, farmer/contact, village, symptoms, signs, notes, and optional coordinates in `livestock_survey_page.dart`.
-- [x] **P1** Persist surveys locally as JSON in `SharedPreferences` through `LivestockSurveyRepository`.
+- [x] **P1** Capture optional farmer-report coordinates when location permission is granted; durable location history and server map exposure remain unverified.
+- [x] **P1** Capture a structured farmer health report with species, count, farmer/contact, village, symptoms, signs, notes, and optional coordinates in `frontend/lib/farmer/reporting/livestock_survey_page.dart`.
+- [x] **P1** Persist reports locally as JSON in `SharedPreferences` through `LivestockSurveyRepository`, including fallback reads from the legacy storage key so existing local records are not discarded.
 - [ ] **P0** Replace local-only storage with an encrypted/durable offline database and a durable sync queue.
-- [ ] **[PARTIAL]** Implement authenticated upload, idempotency keys, retry/backoff, conflict handling, and durable server acknowledgement; this prototype now saves locally first, submits with explicit Saving/Submitting/Submitted/Submission Failed states, supports retry with the same local ID, and displays the in-memory report ID.
-- [x] **P1** Connect the prototype survey submission to `POST /api/v1/reports` with explicit API host configuration: Linux uses `localhost`, Android emulator uses `10.0.2.2`, and physical Android devices require `--dart-define=JEEVSWASTH_ANDROID_API_HOST=<LAN_HOST>` or `JEEVSWASTH_API_BASE_URL=<URL>`.
+- [ ] **[PARTIAL]** Implement authenticated upload, idempotency keys, retry/backoff, conflict handling, and durable server acknowledgement; this prototype saves locally first, submits with explicit Saving/Submitting/Submitted/Submission Failed states, supports retry with the same local ID, and displays the in-memory report ID.
+- [x] **P1** Connect the farmer report submission to `POST /api/v1/reports` with explicit API host configuration: Linux uses `localhost`, Android emulator uses `10.0.2.2`, and physical Android devices require `--dart-define=JEEVSWASTH_ANDROID_API_HOST=<LAN_HOST>` or `JEEVSWASTH_API_BASE_URL=<URL>`.
 - [ ] **P1** Add mortality counts, vaccination/treatment observations, animal tags, photos, samples, and structured clinical metadata.
-- [ ] **P1** Implement assigned farm visits, route planning, visit completion, and supervisor review instead of hard-coded cards.
 - [ ] **P2** Add geocoding privacy controls, location accuracy display, consent, and coordinate redaction where required.
 - [ ] **P2** Replace “Sync Now” and “coming soon” actions with real stateful operations.
 
-**Acceptance criteria:** A field worker can collect offline, close/reopen the app without loss, sync once connectivity returns, and see success/failure per report.
+**Acceptance criteria:** A farmer can create a report offline, close/reopen the app without loss, and see the current local/submission state per report. Background synchronization remains out of scope until the backend queue exists.
 
 ## Phase 7 — Veterinarian workflows and case review
 
 **Objective:** Provide clinical review, triage, referral, treatment, and closure.
 
-- [ ] **P0** Build veterinarian dashboard and queue for assigned/unassigned reports.
+- [x] **P1 — UI only (22 October 2026)** Implement reference-inspired veterinarian dashboard: pale-green scrollable layout, perimeter banner, profile, triage cards, priority cases, routine visit, rapid-action grid, illustrative sector map, follow-ups, and explicit unavailable sync status. Theme remains centralized; no packages added.
+- [x] **P1 — Demo only** Separate fictional profile, case, triage, visit, and follow-up data in `frontend/lib/veterinarian/demo_data.dart`. Review opens read-only demo details. Availability and follow-up completion are reversible in memory, retained across tabs, and reset on leaving the dashboard; they do not write patient records or change real duty status.
+- [x] **P1 — Navigation only** Route `vet`, `veterinarian`, `veterinary officer`, and `veterinary_officer` through the existing demo login to this dashboard. Animals shows demo records; Alerts explicitly states no live feed is connected. Log Symptoms opens the Surveys tab, which explains and opens the existing real livestock-survey form without fictional prefill. Saving that form still uses existing local storage and reports submission.
+- [ ] **P0** Connect veterinarian dashboard and assigned/unassigned queues to authenticated case/profile APIs with authoritative geography and role authorization. Demo role text is not authorization.
+- [ ] **P1** Persist veterinarian availability and follow-up state with audit history, offline handling, and server acknowledgement; replace session-only demo state.
+- [ ] **P1** Connect Navigate & Call, Kit Sample, Dispatch Paravet, E-Prescription, Diagnostic Kit, Daily Route, routine visits, and sector navigation to real services. Current actions explain missing functionality; no fake endpoints are introduced.
+- [ ] **P1** Supply authoritative perimeter/alert feeds, map coordinates, measured GPS accuracy, and actual synchronization state. The current map is only a schematic, sample hotspots are fictional, and sync/GPS are explicitly unavailable.
+- [ ] **[VERIFY]** Run Flutter analysis/build and widget/device checks for veterinarian role routing, case dialogs, tab state, narrow phones, large text, light/dark themes, and survey return navigation. This change received source inspection only; no commands, tests, builds, formatters, or runtime checks were executed.
 - [ ] **P1** Show evidence-grounded report details, history, location, attachments, and source attribution.
+- [ ] **P0** Read and review farmer-submitted reports from an authenticated backend queue; the current `POST /api/v1/reports` endpoint accepts reports but exposes no list, detail, or status API.
 - [ ] **P1** Add triage outcome, differential/ suspected condition, urgency, recommended action, and follow-up date fields.
 - [ ] **P1** Add veterinarian assignment, reassignment, comments, case notes, and state transitions.
 - [ ] **P1** Record treatment, dosage/instructions, vaccination, quarantine/biosecurity advice, and outcome.
@@ -189,7 +216,7 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 
 **Objective:** Support block/district-level situational awareness and coordinated response.
 
-- [ ] **P0** Implement `surveillance` role screens; current `frontend/lib/surveillance/home.dart` is empty.
+- [ ] **P0** Connect the existing `surveillance` role screen (`frontend/lib/surveillance/home.dart`) to authoritative report feeds; its current cards, map, trends, alerts, and response controls are sample telemetry and explicit unavailable actions.
 - [ ] **P1** Provide village/block/district filters, report volumes, active cases, mortality, vaccination coverage, and referral status.
 - [ ] **P1** Implement map/cluster views with aggregation and privacy-safe minimum-count rules.
 - [ ] **P1** Add outbreak watchlists, alert acknowledgement, action assignment, and response timeline.
@@ -374,7 +401,7 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 
 - [x] **P1** Preserve the supplied problem statement in `statment.md` and this roadmap as the implementation source of truth.
 - [ ] **P0** Add setup documentation for frontend, backend, database, Firebase, AI service, environment variables, and secrets.
-- [ ] **P0** Write a demo script that shows farmer report → field-worker verification → vet review → risk signal → official response → advisory.
+- [ ] **P0** Write a demo script that shows farmer report → veterinarian review → risk signal → official response → advisory. Assisted field verification is out of scope as a separate role.
 - [ ] **P1** Add an architecture/data-flow diagram and role-permission matrix.
 - [ ] **P1** Document limitations: no diagnosis without review, uncertain signals, offline staleness, missing integrations, and supported platforms.
 - [ ] **P1** Prepare anonymized seed/demo data and a reproducible presentation environment.
@@ -393,13 +420,15 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 - `frontend/lib/main.dart` — app entrypoint, dynamic color, Firebase initialization, Linux skip, root login page.
 - `frontend/lib/theme/app_theme.dart` — Material 3 centralized theme.
 - `frontend/lib/pages/login_page.dart` — Firebase/Google sign-in client path, demo-only role routing, unconnected backend verification.
-- `frontend/lib/field_worker/home.dart` — GPS, reverse geocoding, cached location, survey list, and placeholder field actions.
-- `frontend/lib/field_worker/livestock_survey_page.dart` — structured survey form and local-save flow.
-- `frontend/lib/field_worker/models/livestock_survey.dart` — survey schema, JSON serialization, sync-status enum.
-- `frontend/lib/field_worker/data/livestock_survey_repository.dart` — `SharedPreferences` persistence only.
+- `frontend/lib/farmer/home.dart` — farmer dashboard and entry point for health reports.
+- `frontend/lib/farmer/reporting/livestock_survey_page.dart` — structured report form, optional GPS capture, local-save, and best-effort submission flow.
+- `frontend/lib/farmer/reporting/models/livestock_survey.dart` — report schema, JSON serialization, sync-status enum.
+- `frontend/lib/farmer/reporting/data/livestock_survey_repository.dart` — `SharedPreferences` persistence with legacy-key compatibility.
 - `frontend/lib/farmer/home.dart` — farmer UI with hard-coded demo content and placeholder actions.
-- `frontend/lib/veterinarian/home.dart` — empty file at audit time.
-- `frontend/lib/surveillance/home.dart` — empty file at audit time.
+- `frontend/lib/veterinarian/home.dart` — reference-inspired veterinarian demo dashboard and session-only interactions (22 October 2026; runtime unverified).
+- `frontend/lib/veterinarian/demo_data.dart` — isolated fictional dashboard fixtures, never submitted to the reports API.
+- `frontend/lib/widgets/veterinarian_navbar.dart` — veterinarian Material 3 navigation destinations.
+- `frontend/lib/surveillance/home.dart` — surveillance overview shell with sample metrics, risk-map/trend visuals, alert cards, response CTA, and explicit unavailable-data messaging; no analytics backend is connected.
 - `backend/src/app.module.ts`, `app.controller.ts`, `app.service.ts`, `main.ts` — NestJS starter app and Observe placeholders.
 - `backend/package.json` — NestJS/Firebase Admin dependencies and test/lint/build scripts.
 - `ai/DATASET_GUIDELINES.md`, `ai/validate_dataset.py`, `ai/dataset/` — extraction schema, safety constraints, validator, and datasets; no model/inference code.

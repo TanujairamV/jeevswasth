@@ -30,7 +30,7 @@ The challenge is to create a practical system that enables early warning, rapid 
 ## Expected Solution / Outcome
 A scalable animal-health surveillance and decision-support solution that can:
 
-- Capture symptom and mortality reports from farmers and field workers.
+- Capture symptom and mortality reports from farmers.
 - Use rule-based or AI-assisted triage to flag suspected outbreaks.
 - Integrate geospatial risk mapping, weather, and historical disease trends.
 - Maintain animal-level or herd-level health, vaccination, and treatment records.
