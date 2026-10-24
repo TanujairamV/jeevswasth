@@ -2,6 +2,17 @@
 
 > **Static repository audit:** 21 October 2026. This document is based on source/configuration inspection only. No commands, tests, builds, formatters, runtime sessions, database connections, or device checks were run. `[x]` means the repository contains evidence of an implemented code/configuration element; it does **not** prove production correctness or end-to-end operation.
 
+## Dependency audit and optimization — 24 October 2026
+
+- [x] Removed unused Flutter direct dependencies: `cupertino_icons` and `geocoding`; retained their feature replacements (`Icons`/`geolocator`) and regenerated `frontend/pubspec.lock`.
+- [x] Removed unused backend runtime dependencies: `@nestjs/config` and `firebase-admin`; regenerated `backend/package-lock.json` with npm.
+- [x] Confirmed `dynamic_color`, Firebase, Google Sign-In, Font Awesome, geolocator, shared preferences, and HTTP are directly used by the Flutter source. `material_ui` remains transitive and was not removed from the resolved graph.
+- [x] Enabled Android release code/resource shrinking and Gradle build caching/parallelism without changing the universal APK command or application ID.
+- [x] Added Java 17 and Pub/Gradle cache setup to the Android GitHub Actions workflow.
+- [x] Backend validation completed locally: build, unit tests (1 passing), and oxlint all pass. The container has no Flutter/Dart/Java/Gradle SDKs, so Flutter analysis, APK size comparison, and Android release verification remain CI-required.
+- [ ] Measure before/after universal APK size and GitHub Actions duration on a successful CI run; no prior run metrics were available locally.
+- [ ] Review the remaining 14 npm audit findings separately before applying any security upgrades; no broad version upgrade was made in this audit.
+
 ## Official SIH problem statement
 
 - **Problem Statement ID:** 26128
@@ -218,7 +229,10 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 
 - [ ] **P0** Connect the existing `surveillance` role screen (`frontend/lib/surveillance/home.dart`) to authoritative report feeds; its current cards, map, trends, alerts, and response controls are sample telemetry and explicit unavailable actions.
 - [ ] **P1** Provide village/block/district filters, report volumes, active cases, mortality, vaccination coverage, and referral status.
-- [ ] **P1** Implement map/cluster views with aggregation and privacy-safe minimum-count rules.
+- [x] **P1 — Surveillance Officer only** Added an OpenFreeMap/MapLibre interactive map to the surveillance Overview and Map screens. Markers currently come from `GET /reports/locations/clusters` and are plotted only when the backend returns valid aggregated coordinates.
+- [x] **P1 — Privacy-safe location display** Reused the backend minimum-report cluster response, displayed aggregated coordinates only, and kept individual report coordinates out of the Flutter map. The map includes panning, pinch zoom, recentering, attribution, marker summaries, empty/error states, and a full-map action.
+- [x] **Surveillance demo fallback** When the location-cluster API is unavailable, the map shows clearly labelled demonstration clusters for Bilaspur, Indri, and Assandh instead of appearing blank. These markers are not presented as live incidents.
+- [ ] **P1 — Pending** Add backend-provided risk levels and authenticated geography filters. Until then, markers use the green “risk level not supplied by API” state; no incident severity, outbreak status, or cluster statistics are invented by the client.
 - [ ] **P1** Add outbreak watchlists, alert acknowledgement, action assignment, and response timeline.
 - [ ] **P1** Add exportable, access-controlled reports for planning and government review.
 - [ ] **P2** Add trend comparison by species, disease/condition, geography, season, and reporting source.
