@@ -1,4 +1,14 @@
-backend/node_modules/
-#Omniroute related
-.opencode/
+# Android generated build files
+frontend/android/.gradle/
+frontend/android/build/
+frontend/android/app/build/
+
+# Flutter generated files
+frontend/build/
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+
+# Local AI tool configuration
 .claude/
+.opencode/
