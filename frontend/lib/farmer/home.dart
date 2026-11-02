@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../widgets/farmer_navbar.dart';
 import 'reporting/livestock_survey_page.dart';
+import 'reporting/reports_history_page.dart';
 
 class FarmerHome extends StatefulWidget {
   const FarmerHome({super.key});
@@ -42,6 +43,8 @@ class _FarmerHomeState extends State<FarmerHome> {
               icon: Icons.assignment,
               actionLabel: 'Start health report',
               onAction: _openHealthReport,
+              secondaryActionLabel: 'View submitted reports',
+              onSecondaryAction: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportsHistoryPage())),
             ),
             _PlaceholderPage(
               title: 'Alerts',
@@ -925,6 +928,8 @@ class _PlaceholderPage extends StatelessWidget {
   final IconData icon;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final String? secondaryActionLabel;
+  final VoidCallback? onSecondaryAction;
 
   const _PlaceholderPage({
     required this.title,
@@ -932,6 +937,8 @@ class _PlaceholderPage extends StatelessWidget {
     required this.icon,
     this.actionLabel,
     this.onAction,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
   });
 
   @override
@@ -969,6 +976,10 @@ class _PlaceholderPage extends StatelessWidget {
                 icon: Icon(Icons.add_circle_outline),
                 label: Text(actionLabel!),
               ),
+            ],
+            if (secondaryActionLabel != null && onSecondaryAction != null) ...[
+              const SizedBox(height: 10),
+              OutlinedButton.icon(onPressed: onSecondaryAction, icon: const Icon(Icons.history), label: Text(secondaryActionLabel!)),
             ],
           ],
         ),

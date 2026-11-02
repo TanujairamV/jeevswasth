@@ -10,8 +10,11 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   material.WidgetsFlutterBinding.ensureInitialized();
 
-  // Skip Firebase initialization on Linux for UI preview.
-  if (defaultTargetPlatform != TargetPlatform.linux) {
+  // Skip Firebase initialization only for the native Linux UI preview.
+  // On web, defaultTargetPlatform may still report Linux depending on the
+  // browser, but Firebase must be initialized before FirebaseAuth is read.
+  final isNativeLinux = !kIsWeb && defaultTargetPlatform == TargetPlatform.linux;
+  if (!isNativeLinux) {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );

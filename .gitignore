@@ -1,1 +1,18 @@
-backend/node_modules/
+# Android generated build files
+frontend/android/.gradle/
+frontend/android/build/
+frontend/android/app/build/
+
+# Flutter generated files
+frontend/build/
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+
+# Local AI tool configuration
+.claude/
+.opencode/
+
+node_modules/
+**/node_modules/
+.neon

@@ -31,6 +31,121 @@
 $ npm install
 ```
 
+## Neon PostgreSQL and roles
+
+Copy `.env.example` to `.env` and provide `DATABASE_URL` from the Neon production branch plus the Firebase Admin service-account values. The backend refuses to start when `DATABASE_URL` is missing, uses TLS for Neon, and never enables TypeORM schema synchronization.
+
+After compiling the backend, apply the explicit migration:
+
+```bash
+npm run build
+npx typeorm migration:run -d dist/database/data-source.js
+```
+
+Firebase remains the identity provider. On the first authenticated request, the backend creates a `users` row and assigns only `farmer`; it loads roles from PostgreSQL on every guarded request and rejects disabled users. Veterinarian and surveillance-officer assignments must be performed by a trusted operator in Neon's SQL Editor, not by Flutter or a public API.
+
+Example SQL administration:
+
+```sql
+-- Available roles
+SELECT id, name FROM roles ORDER BY name;
+
+-- Users and assigned roles
+SELECT u.firebase_uid, u.email, u.display_name, u.is_active,
+       COALESCE(string_agg(r.name, ', ' ORDER BY r.name), '') AS roles
+FROM users u
+LEFT JOIN user_roles ur ON ur.user_id = u.id
+LEFT JOIN roles r ON r.id = ur.role_id
+GROUP BY u.id
+ORDER BY u.created_at;
+
+-- Assign a role to a user (run only from a controlled admin session)
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id FROM users u CROSS JOIN roles r
+WHERE u.firebase_uid = 'FIREBASE_UID' AND r.name = 'veterinarian'
+ON CONFLICT DO NOTHING;
+
+-- Remove a role assignment
+DELETE FROM user_roles
+WHERE user_id = (SELECT id FROM users WHERE firebase_uid = 'FIREBASE_UID')
+  AND role_id = (SELECT id FROM roles WHERE name = 'veterinarian');
+
+-- Disable an account
+UPDATE users SET is_active = false, updated_at = now()
+WHERE firebase_uid = 'FIREBASE_UID';
+```
+
+The existing report endpoint and response contract are unchanged. The NestJS report service remains in-memory for the original Node path; the Cloudflare Worker report endpoints now persist to the Neon `reports` table. Flutter remains local-first and keeps its existing retry-safe client report ID.
+
+## Cloudflare Workers deployment
+
+The NestJS entry point in `src/main.ts` starts a long-lived Express HTTP server with `NestFactory.create()` and `app.listen()`. That is not the Workers request model. The current TypeORM setup also depends on Node-oriented connection pooling and Nest application bootstrapping, while `firebase-admin` is not a clean Workers dependency because it relies on Node APIs and service-account credential handling. The original NestJS server remains available for Node hosting; Workers use the separate `src/worker.ts` adapter.
+
+The Worker preserves Firebase ID-token verification using Firebase Secure Token JWKS, loads users and roles from PostgreSQL, provisions a default farmer role, rejects disabled accounts, and preserves the existing `POST /api/v1/reports` response contract. It uses the existing `pg` dependency with Cloudflare Hyperdrive. TypeORM is intentionally not bundled into this Worker path; it remains the Node migration and NestJS runtime dependency.
+
+### Manual deployment steps
+
+1. Install dependencies from `backend/` and create the Hyperdrive configuration using your Neon pooled connection string:
+
+   ```bash
+   npx wrangler login
+   npx wrangler hyperdrive create jeevswasth-neon --connection-string="$DATABASE_URL"
+   ```
+
+2. Put the returned Hyperdrive ID in `backend/wrangler.jsonc` and replace `FIREBASE_PROJECT_ID` with the Firebase project ID.
+
+   The checked-in Wrangler file intentionally contains placeholders. Deployment is blocked until both `REPLACE_WITH_HYPERDRIVE_ID` and `REPLACE_WITH_FIREBASE_PROJECT_ID` are replaced with real project configuration. The Worker uses the `HYPERDRIVE` binding's `connectionString`; it does not read `DATABASE_URL` at runtime.
+
+3. Store Worker secrets. `DATABASE_URL` is not needed by the Worker after Hyperdrive is configured; do not put it in Wrangler vars or Flutter:
+
+   ```bash
+   npx wrangler secret put FIREBASE_PROJECT_ID
+   npx wrangler secret put FIREBASE_CLIENT_EMAIL
+   npx wrangler secret put FIREBASE_PRIVATE_KEY
+   ```
+
+   `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` are retained in the secret list for compatibility with the Node NestJS deployment, but the Workers adapter verifies tokens through Firebase's public JWKS and does not require the private key.
+
+4. Apply all TypeORM migrations against Neon using the Node backend migration workflow before publishing the Worker. The Worker expects `users`, `roles`, `user_roles`, and `reports` to exist. The new report migration is `1710000001000-CreateReports`.
+
+5. Deploy:
+
+   ```bash
+   npm run worker:deploy
+   ```
+
+6. Use the Wrangler output URL as the Flutter API base URL, preserving the `/api/v1` prefix. No Firebase private key or database URL belongs in Flutter.
+
+Limitations: the original NestJS `ReportsService` still uses its existing in-memory map, so Node-hosted and Worker-hosted report stores are separate until the NestJS path is migrated to the same repository. The Worker adapter still does not include the existing cluster endpoint.
+
+The role-selection flow uses `GET /api/v1/me` to resolve authoritative roles and `POST /api/v1/me/role-requests` to select a role. Farmer selection is assigned immediately after Firebase authentication; veterinarian and surveillance-officer selections create pending requests and never grant privileged access directly. Apply migration `1710000002000-CreateRoleRequests` before using these endpoints.
+
+### Safe local checks before deployment
+
+From `backend/`, after installing dependencies and providing local Wrangler values/secrets:
+
+```bash
+npm run build
+npx wrangler types
+npx wrangler deploy --dry-run
+npm run worker:dev
+```
+
+Use a Firebase ID token only in local request testing; never commit it or put it in logs. Check the health response, an unauthenticated `POST /api/v1/reports` (expected 401), an invalid JSON request (expected 400 after authentication), an authenticated report insert, a retry with the same `clientReportId`, and `GET /api/v1/reports/mine`. These are instructions only; they have not been run here.
+
+### First-deployment blockers
+
+- Cloudflare authentication and the correct account/project must be selected.
+- A real Hyperdrive ID must replace the placeholder.
+- The Firebase project ID must replace its placeholder and match the Firebase tokens used by Flutter.
+- The Worker must be allowed to reach the Neon database through Hyperdrive.
+- The migrated `users`, `roles`, `user_roles`, and `reports` tables must exist in the Hyperdrive-targeted Neon database.
+- Flutter must be configured with the deployed Worker URL, including `/api/v1`.
+
+### Reports migration details
+
+`1710000001000-CreateReports` creates a durable `reports` table with the existing report fields, optional location fields, ownership by Firebase UID, positive-count and coordinate checks, timestamps, and indexes for owner/time queries. `client_report_id` is unique per owner when supplied, allowing Flutter retries to return the original `reportId` with `idempotent: true` instead of inserting a duplicate.
+
 ## Compile and run the project
 
 ```bash

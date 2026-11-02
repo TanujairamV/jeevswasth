@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "jeevswasth-api",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "9cf4f9d8bdbe45f89b6560947e4562ee" }],
+  "vars": { "FIREBASE_PROJECT_ID": "jeevswasth" }
+}
