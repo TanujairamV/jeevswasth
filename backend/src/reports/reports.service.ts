@@ -12,6 +12,7 @@ export interface LivestockHealthReport {
   clinicalSigns?: string[];
   notes?: string;
   location?: { latitude: number; longitude: number; address?: string; accuracyMeters?: number };
+  ownerUid?: string;
 }
 
 export interface SurveillanceCluster {
@@ -31,9 +32,15 @@ export class ReportsService {
   private readonly reports = new Map<string, LivestockHealthReport>();
 
   create(report: LivestockHealthReport) {
+    const existing = report.clientReportId && [...this.reports.entries()].find(([, value]) => value.clientReportId === report.clientReportId && value.ownerUid === report.ownerUid);
+    if (existing) return { reportId: existing[0], status: 'submitted', idempotent: true };
     const reportId = `report_${Date.now()}_${this.reports.size + 1}`;
     this.reports.set(reportId, report);
     return { reportId, status: 'submitted' };
+  }
+
+  mine(ownerUid: string) {
+    return [...this.reports.entries()].filter(([, report]) => report.ownerUid === ownerUid).map(([reportId, report]) => ({ reportId, ...report }));
   }
 
   clusters(options: { since?: Date; minimumReports: number }): SurveillanceCluster[] {

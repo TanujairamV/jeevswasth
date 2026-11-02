@@ -51,7 +51,10 @@ The requested product scope is broadly represented across the phases below, but 
 - **Frontend:** Flutter/Dart package under `frontend/`, Dart SDK constraint `^3.13.4`.
 - **Frontend packages:** Material 3, `dynamic_color`, `firebase_core`, `firebase_auth`, `google_sign_in`, `geolocator`, `geocoding`, `shared_preferences`, `material_ui`, Font Awesome.
 - **Backend:** NestJS 12 / TypeScript ESM under `backend/`, Express platform, RxJS, Firebase Admin dependency, Nest Observe instrumentation.
-- **Database:** No configured PostgreSQL, other SQL database, ORM, entities, migrations, repositories, or persistence module was found in the inspected repository. Current farmer-report persistence is local `SharedPreferences` only.
+- **Workers deployment:** `backend/src/worker.ts` provides a separate Cloudflare Workers request handler using Firebase Secure Token JWKS and Cloudflare Hyperdrive with `pg`; the NestJS/Express server remains the Node deployment path.
+- **Workers readiness:** Worker code now uses the configured `HYPERDRIVE` binding, Firebase issuer/audience verification with standard JWT time validation, explicit CORS responses, and malformed-JSON rejection. Wrangler still requires real Hyperdrive and Firebase project configuration before deployment.
+- **Role onboarding:** The Worker now exposes authenticated profile and role-request endpoints. Farmer can be assigned through the authenticated operation; veterinarian and surveillance officer selections remain pending until an operator assigns the role. Migration `1710000002000-CreateRoleRequests` is required.
+- **Database:** Neon PostgreSQL is configured through `DATABASE_URL` with TypeORM entities and an explicit migration for users, roles, and user-role assignments. Livestock reports remain in-memory on the backend and local-first in Flutter pending the separate reporting persistence milestone.
 - **AI:** `ai/` contains annotation guidance, JSONL train/validation/test datasets, and a dataset validator. No model implementation, training script, inference service, API, or deployment code was found.
 - **CI/CD:** `.github/workflows/android-build.yml` builds/analyzes/releases an Android APK when manually dispatched or when a commit message contains `--build`.
 - **Platforms:** Android and Linux Flutter runner configuration are present; web and macOS artifacts are also present in the Flutter project. Linux intentionally skips Firebase initialization in `frontend/lib/main.dart`.
@@ -75,8 +78,8 @@ The repository currently contains a Flutter UI prototype with role-themed screen
 
 ### Partial, placeholder, or unverified elements
 
-- Google/Firebase sign-in is implemented on the client, but backend token verification is explicitly not connected.
-- Role routing is demo-only: the email field is treated as a role string; it routes only to Farmer, Veterinarian, or Surveillance dashboards.
+- Google/Firebase sign-in is implemented on the client, and backend token verification plus database user provisioning are now connected in the guarded NestJS path. Runtime credential validity remains unverified.
+- Role routing remains UI-compatible, but backend role authority now comes from PostgreSQL assignments; the email field is no longer an authorization source. Frontend role routing still needs to consume the server profile.
 - Farmer screens contain hard-coded presentation data and placeholder actions. Farmer reporting is the owner of the existing livestock survey, local-first save, GPS capture, and best-effort API submission flow. The veterinarian dashboard now has explicitly labeled, isolated fictional fixtures and session-only controls; it is not connected to clinical backend services. `surveillance/home.dart` now has the requested monitoring-oriented shell and sample visualizations, but remains demo telemetry rather than live analytics.
 - Offline survey saving and prototype upload exist, but sync status is not advanced, and there is no retry queue, conflict resolution, authentication, or durable server persistence.
 - GPS coordinates are captured in the farmer report payload and cached locally where available, but there is no server geospatial pipeline, veterinarian report-location view, or surveillance risk map.
@@ -161,9 +164,10 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 **Objective:** Establish secure identity and role-aware access.
 
 - [x] **P1** Retain Firebase client initialization and Google sign-in code path in `frontend/lib/pages/login_page.dart`.
-- [ ] **P0** Implement NestJS Firebase ID-token verification using `firebase-admin` and a request guard.
-- [ ] **P0** Replace `_verifyWithBackend` placeholder with an authenticated API call and session/error handling.
-- [ ] **P0** Implement server-side role claims/profile lookup; never derive role from the email text field.
+- [x] **P0** Implement NestJS Firebase ID-token verification using `firebase-admin` and a request guard; production credentials remain environment-provided.
+- [x] **P0** Replace `_verifyWithBackend` placeholder with an authenticated API call and session/error handling; role routing remains demo-only until the frontend consumes server profiles.
+- [x] **P1** Add Firebase email/password account creation and sign-in UI; new accounts currently enter the farmer experience until server-side profiles and role assignment are implemented.
+- [x] **P0** Implement server-side Firebase UID profile lookup and database-backed role assignments; new users receive only the seeded `farmer` role, and roles are never derived from email text.
 - [ ] **P1** Add user profile, organization, geography assignment, phone/contact, language, and consent records.
 - [ ] **P1** Implement sign-out, token refresh, account deletion, disabled-account handling, and session expiry.
 - [ ] **P2** Add admin workflows for inviting, approving, suspending, and reassigning users.
@@ -193,7 +197,7 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 - [x] **P1** Capture a structured farmer health report with species, count, farmer/contact, village, symptoms, signs, notes, and optional coordinates in `frontend/lib/farmer/reporting/livestock_survey_page.dart`.
 - [x] **P1** Persist reports locally as JSON in `SharedPreferences` through `LivestockSurveyRepository`, including fallback reads from the legacy storage key so existing local records are not discarded.
 - [ ] **P0** Replace local-only storage with an encrypted/durable offline database and a durable sync queue.
-- [ ] **[PARTIAL]** Implement authenticated upload, idempotency keys, retry/backoff, conflict handling, and durable server acknowledgement; this prototype saves locally first, submits with explicit Saving/Submitting/Submitted/Submission Failed states, supports retry with the same local ID, and displays the in-memory report ID.
+- [ ] **[PARTIAL]** Implement authenticated upload, idempotency keys, retry/backoff, conflict handling, and durable server acknowledgement; authenticated upload and same-client-ID idempotency now exist, while retry/backoff, conflict handling, and durable database persistence remain outstanding.
 - [x] **P1** Connect the farmer report submission to `POST /api/v1/reports` with explicit API host configuration: Linux uses `localhost`, Android emulator uses `10.0.2.2`, and physical Android devices require `--dart-define=JEEVSWASTH_ANDROID_API_HOST=<LAN_HOST>` or `JEEVSWASTH_API_BASE_URL=<URL>`.
 - [ ] **P1** Add mortality counts, vaccination/treatment observations, animal tags, photos, samples, and structured clinical metadata.
 - [ ] **P2** Add geocoding privacy controls, location accuracy display, consent, and coordinate redaction where required.
@@ -246,7 +250,7 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 - [x] **P1** Retain NestJS bootstrap in `backend/src/main.ts` and starter root controller/service as the current baseline.
 - [ ] **[PARTIAL]** Create modules/controllers/services/DTOs for identity, profiles, animals, herds, reports, cases, visits, vaccinations, treatments, samples, advisories, alerts, and analytics; only the prototype reports controller/service exists.
 - [ ] **P0** Add DTO validation, consistent error envelopes, pagination, filtering, sorting, correlation IDs, and API versioning.
-- [ ] **P0** Add auth and role/geography guards to every protected route.
+- [x] **P0 — partial** Add Firebase auth guard, Firebase UID provisioning, active-account checks, and database-backed role loading to report creation and farmer report listing; broader role/geography guards for future domain routes remain outstanding.
 - [ ] **P1** Implement transactional report/case state transitions and idempotent sync endpoints.
 - [ ] **P1** Add health/readiness endpoints that do not expose secrets or sensitive data.
 - [ ] **P1** Replace placeholder Observe credentials (`YOUR_APP_KEY`, `YOUR_APP_SECRET`) with environment configuration or disable instrumentation safely.
@@ -258,10 +262,12 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 
 **Objective:** Establish authoritative persistence; no database configuration currently exists.
 
-- [ ] **P0** Choose PostgreSQL (or document another decision) and add environment-based connection configuration.
-- [ ] **P0** Select and configure an ORM/query layer; add initial migrations rather than relying on generated runtime schema.
+- [x] **P0** Choose Neon PostgreSQL and add `DATABASE_URL`-based configuration with TLS.
+- [x] **P0** Configure TypeORM and add an initial migration; production schema synchronization is disabled.
+- [ ] **P0** Apply the migration to the linked Neon production branch and confirm deployment credentials outside Git.
+- [x] **P1** Seed `farmer`, `veterinarian`, and `surveillance_officer` roles; assign officer roles only through controlled SQL administration.
 - [ ] **P0** Model users/roles/organizations/geographies, animals, herds, reports, symptoms, mortality, cases, assignments, visits, vaccinations, treatments, samples, lab results, advisories, alerts, and audit events.
-- [ ] **P0** Add foreign keys, uniqueness, check constraints, timestamps, soft deletion/retention rules, and indexes for geography/time/status queries.
+- [x] **P0** Add foreign keys, uniqueness, timestamps, active-account state, and user-role constraints for the role foundation.
 - [ ] **P1** Add idempotency and client-event identifiers for offline sync.
 - [ ] **P1** Define provenance/versioning for imported, edited, AI-extracted, and veterinarian-confirmed fields.
 - [ ] **P1** Add seed data only in a clearly isolated development fixture path.
@@ -401,6 +407,9 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 
 - [x] **P1** Keep Android workflow for Flutter analyze/build/release in `.github/workflows/android-build.yml`.
 - [ ] **P0** Add backend CI for install, lint, typecheck/build, unit tests, integration tests, and image/package publication.
+- [ ] **P0** Create the Cloudflare Hyperdrive binding, apply Neon migrations, configure Worker secrets, and deploy the Workers adapter.
+- [x] **P0** Persist Cloudflare Worker reports in Neon with migration `1710000001000-CreateReports`, owner filtering, optional coordinates, and client-report idempotency.
+- [ ] **P1** Migrate the original NestJS `ReportsService` from its in-memory map to the shared Neon `reports` table so Node and Worker deployments have identical report persistence.
 - [ ] **P0** Define dev/staging/production environment configuration, migrations, secrets, Firebase projects, and rollback procedures.
 - [ ] **P1** Prevent release workflows from exposing secrets and restrict release permissions to least privilege.
 - [ ] **P1** Add artifact signing/provenance, versioning, changelog, and release approval gates.
@@ -414,7 +423,7 @@ Backend domain APIs; authentication guards and role authorization; profiles; Pos
 **Objective:** Present a credible, evidence-backed SIH solution and preserve continuity for future coding sessions.
 
 - [x] **P1** Preserve the supplied problem statement in `statment.md` and this roadmap as the implementation source of truth.
-- [ ] **P0** Add setup documentation for frontend, backend, database, Firebase, AI service, environment variables, and secrets.
+- [x] **P0** Add backend Neon/Firebase environment template and manual SQL administration guidance below.
 - [ ] **P0** Write a demo script that shows farmer report → veterinarian review → risk signal → official response → advisory. Assisted field verification is out of scope as a separate role.
 - [ ] **P1** Add an architecture/data-flow diagram and role-permission matrix.
 - [ ] **P1** Document limitations: no diagnosis without review, uncertain signals, offline staleness, missing integrations, and supported platforms.

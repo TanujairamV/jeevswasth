@@ -4,11 +4,15 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { ReportsController } from './reports/reports.controller.js';
 import { ReportsService } from './reports/reports.service.js';
+import { FirebaseAuthService } from './auth/firebase-auth.service.js';
+import { FirebaseAuthGuard } from './auth/firebase-auth.guard.js';
+import { DatabaseModule } from './database/database.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
 @Module({
   imports: [
+    DatabaseModule,
     // Distributed tracing, auto-correlated logs, request/job metrics, error
     // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com
     ObserveModule.forRoot({
@@ -18,6 +22,6 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     }),
   ],
   controllers: [AppController, ReportsController],
-  providers: [AppService, ReportsService],
+  providers: [AppService, ReportsService, FirebaseAuthService, FirebaseAuthGuard],
 })
 export class AppModule {}

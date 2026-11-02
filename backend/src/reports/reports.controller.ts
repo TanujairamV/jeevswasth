@@ -1,9 +1,17 @@
-import { BadRequestException, Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { FirebaseAuthGuard } from '../auth/firebase-auth.guard.js';
 import { LivestockHealthReport, ReportsService } from './reports.service.js';
+import { User } from '../database/user.entity.js';
 
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
+
+  @Get('mine')
+  @UseGuards(FirebaseAuthGuard)
+  mine(@Req() request: { user: User }) {
+    return { status: 'ok', reports: this.reportsService.mine(request.user.firebaseUid) };
+  }
 
   @Get('locations/clusters')
   clusters(@Query('since') since?: string, @Query('minimumReports') minimumReports?: string) {
@@ -25,7 +33,8 @@ export class ReportsController {
   }
 
   @Post()
-  create(@Body() report: Partial<LivestockHealthReport>) {
+  @UseGuards(FirebaseAuthGuard)
+  create(@Body() report: Partial<LivestockHealthReport>, @Req() request: { user: User }) {
     const missing = [
       ['species', typeof report.species === 'string' && report.species.trim().length > 0],
       ['animalCount', typeof report.animalCount === 'number' && Number.isInteger(report.animalCount) && report.animalCount > 0],
@@ -38,7 +47,7 @@ export class ReportsController {
     if (missing.length > 0) {
       throw new BadRequestException({ status: 'rejected', message: 'Invalid livestock health report', missing });
     }
-    return this.reportsService.create(report as LivestockHealthReport);
+    return this.reportsService.create({ ...report, ownerUid: request.user.firebaseUid } as LivestockHealthReport);
   }
 
   private isValidLocation(location: unknown): boolean {
