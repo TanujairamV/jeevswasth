@@ -7,6 +7,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../farmer/home.dart';
 import '../veterinarian/home.dart';
 import '../surveillance/home.dart';
+import '../farmer/reporting/data/reports_api_client.dart';
+import 'role_selection_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -27,6 +29,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _isInitializing = false;
   bool _isInitialized = false;
   bool _isSigningIn = false;
+  bool _isCreateAccount = false;
 
   bool get _isLinux =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.linux;
@@ -135,19 +138,11 @@ class _LoginPageState extends State<LoginPage> {
         throw Exception('Could not obtain the Firebase ID token.');
       }
 
-      debugPrint('Firebase user authenticated: ${user.uid}');
-      debugPrint('Email: ${user.email}');
-
-      await _verifyWithBackend(firebaseIdToken);
+       final profile = await _verifyWithBackend(firebaseIdToken);
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Google sign-in successful.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+        await _routeAfterAuthentication(profile);
     } on FirebaseAuthException catch (e) {
       debugPrint('Firebase authentication error: ${e.code}');
 
@@ -188,10 +183,25 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _verifyWithBackend(String firebaseIdToken) async {
-    debugPrint(
-      'Firebase ID token obtained. NestJS verification is not connected yet.',
-    );
+  Future<BackendProfile> _verifyWithBackend(String firebaseIdToken) async {
+    if (firebaseIdToken.isEmpty) throw Exception('Could not obtain the Firebase ID token.');
+    final profile = await ReportsApiClient().verifySession(firebaseIdToken: firebaseIdToken);
+    debugPrint('Backend profile loaded: roles=${profile.roles}, pending=${profile.pendingRoleRequests}');
+    return profile;
+  }
+
+  Future<void> _routeAfterAuthentication(BackendProfile profile) async {
+    if (!mounted) return;
+    final roles = profile.roles.map((role) => role.trim().toLowerCase()).toSet();
+    final Widget? destination = roles.contains('farmer')
+        ? const FarmerHome()
+        : roles.contains('veterinarian')
+            ? const VeterinarianHome()
+            : roles.contains('surveillance_officer')
+                ? const SurveillanceHome()
+                : null;
+    debugPrint('Authentication navigation: roles=$roles, destination=${destination?.runtimeType ?? 'RoleSelectionPage'}');
+    await Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => destination ?? const RoleSelectionPage()));
   }
 
   // Developer-only testing helper to open a demo role dashboard or show a notice if not created yet.
@@ -241,8 +251,68 @@ class _LoginPageState extends State<LoginPage> {
 
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final String role = _emailController.text.trim().toLowerCase();
-    _openDemoRole(role);
+    final emailOrRole = _emailController.text.trim();
+    if (!emailOrRole.contains('@')) {
+      _openDemoRole(emailOrRole.toLowerCase());
+      return;
+    }
+    _authenticateWithEmail(emailOrRole, _passwordController.text);
+  }
+
+  Future<void> _authenticateWithEmail(String email, String password) async {
+    final auth = _auth;
+    if (auth == null) {
+      _showMessage('Firebase authentication is unavailable on this platform.');
+      return;
+    }
+    setState(() => _isSigningIn = true);
+    try {
+      final credential = _isCreateAccount
+          ? await auth.createUserWithEmailAndPassword(email: email, password: password)
+          : await auth.signInWithEmailAndPassword(email: email, password: password);
+      final token = await credential.user?.getIdToken();
+      if (token == null || token.isEmpty) throw Exception('Could not obtain the Firebase ID token.');
+      final profile = await _verifyWithBackend(token);
+      if (!mounted) return;
+      _showMessage(_isCreateAccount ? 'Account created successfully.' : 'Signed in successfully.');
+       await _routeAfterAuthentication(profile);
+    } on FirebaseAuthException catch (error) {
+      _showMessage(_firebaseErrorMessage(error));
+    } catch (error) {
+      _showMessage(error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _isSigningIn = false);
+    }
+  }
+
+  String _firebaseErrorMessage(FirebaseAuthException error) {
+    switch (error.code) {
+      case 'invalid-email':
+        return 'Enter a valid email address.';
+      case 'weak-password':
+        return 'Choose a stronger password with at least 6 characters.';
+      case 'email-already-in-use':
+        return 'An account already exists for this email. Sign in instead.';
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'The email or password is incorrect.';
+      case 'user-disabled':
+        return 'This Firebase account has been disabled.';
+      case 'network-request-failed':
+        return 'Firebase could not connect. Check your internet connection and try again.';
+      case 'too-many-requests':
+        return 'Too many attempts. Wait a moment and try again.';
+      case 'operation-not-allowed':
+        return 'Email/password authentication is not enabled in Firebase Console.';
+      default:
+        return error.message ?? 'Firebase authentication failed (${error.code}).';
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), behavior: SnackBarBehavior.floating));
   }
 
   @override
@@ -299,14 +369,14 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 48),
                   Text(
-                    'Welcome back',
+                    _isCreateAccount ? 'Create your account' : 'Welcome back',
                     style: textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign in to continue to your account.',
+                    _isCreateAccount ? 'Create a farmer account to submit reports.' : 'Sign in to continue to your account.',
                     style: textTheme.bodyMedium?.copyWith(
                       color: colors.onSurfaceVariant,
                     ),
@@ -324,16 +394,21 @@ class _LoginPageState extends State<LoginPage> {
                           textInputAction: TextInputAction.next,
                           autocorrect: false,
                           decoration: InputDecoration(
-                            labelText: 'Email or role',
-                            hintText: 'Demo role, e.g. farmer',
+                             labelText: 'Email${_isCreateAccount ? '' : ' or role'}',
+                             hintText: _isCreateAccount ? 'you@example.com' : 'Demo role, e.g. farmer',
                             prefixIcon: const Icon(Icons.person_outline),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                           validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Please enter your email or role.';
+                            final email = value?.trim() ?? '';
+                            if (email.isEmpty) {
+                               return 'Please enter your email.';
+                            }
+                            if (_isCreateAccount || email.contains('@')) {
+                              final valid = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
+                              if (!valid) return 'Enter a valid email address.';
                             }
                             return null;
                           },
@@ -371,6 +446,9 @@ class _LoginPageState extends State<LoginPage> {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your password.';
                             }
+                            if (value.length < 6) {
+                              return 'Use at least 6 characters.';
+                            }
                             return null;
                           },
                         ),
@@ -386,7 +464,12 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text('Sign in'),
+                    child: Text(_isCreateAccount ? 'Create account' : 'Sign in'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _isSigningIn ? null : () => setState(() => _isCreateAccount = !_isCreateAccount),
+                    child: Text(_isCreateAccount ? 'Already have an account? Sign in' : 'Need an account? Create one'),
                   ),
                   const SizedBox(height: 24),
                   // Developer-only testing functionality
