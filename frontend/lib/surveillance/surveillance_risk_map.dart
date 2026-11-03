@@ -1,3 +1,5 @@
+import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart' show Factory;
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' as geo;
 import 'package:maplibre_gl/maplibre_gl.dart';
@@ -95,10 +97,24 @@ class _SurveillanceRiskMapState extends State<SurveillanceRiskMap> {
             MapLibreMap(
               styleString: _styleUrl,
               initialCameraPosition: _initialPosition,
+              // This map is hosted inside the page's CustomScrollView. An
+              // eager recognizer lets the native MapLibre view win the
+              // pointer arena, so a finger drag is handled as a map pan
+              // instead of being claimed by the page scroll view. MapLibre
+              // then handles one-finger pan and two-finger pinch natively.
+              gestureRecognizers: {
+                Factory<OneSequenceGestureRecognizer>(
+                  () => EagerGestureRecognizer(),
+                ),
+              },
               annotationOrder: const [AnnotationType.circle],
               compassEnabled: false,
               myLocationEnabled: false,
               rotateGesturesEnabled: false,
+              scrollGesturesEnabled: true,
+              zoomGesturesEnabled: true,
+              doubleClickZoomEnabled: true,
+              dragEnabled: true,
               onMapCreated: (controller) {
                 _controller = controller;
               },
