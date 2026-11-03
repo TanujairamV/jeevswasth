@@ -8,6 +8,7 @@ import '../farmer/home.dart';
 import '../veterinarian/home.dart';
 import '../surveillance/home.dart';
 import '../farmer/reporting/data/reports_api_client.dart';
+import 'registration_page.dart';
 import 'role_selection_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -29,7 +30,6 @@ class _LoginPageState extends State<LoginPage> {
   bool _isInitializing = false;
   bool _isInitialized = false;
   bool _isSigningIn = false;
-  bool _isCreateAccount = false;
 
   bool get _isLinux =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.linux;
@@ -267,14 +267,12 @@ class _LoginPageState extends State<LoginPage> {
     }
     setState(() => _isSigningIn = true);
     try {
-      final credential = _isCreateAccount
-          ? await auth.createUserWithEmailAndPassword(email: email, password: password)
-          : await auth.signInWithEmailAndPassword(email: email, password: password);
+      final credential = await auth.signInWithEmailAndPassword(email: email, password: password);
       final token = await credential.user?.getIdToken();
       if (token == null || token.isEmpty) throw Exception('Could not obtain the Firebase ID token.');
       final profile = await _verifyWithBackend(token);
       if (!mounted) return;
-      _showMessage(_isCreateAccount ? 'Account created successfully.' : 'Signed in successfully.');
+      _showMessage('Signed in successfully.');
        await _routeAfterAuthentication(profile);
     } on FirebaseAuthException catch (error) {
       _showMessage(_firebaseErrorMessage(error));
@@ -320,37 +318,55 @@ class _LoginPageState extends State<LoginPage> {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final mediaQuery = MediaQuery.of(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 32,
-            ),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 600;
+            final horizontalPadding = (constraints.maxWidth * 0.06)
+                .clamp(16.0, 40.0)
+                .toDouble();
+            final verticalPadding = isCompact ? 24.0 : 40.0;
+            final bottomPadding = mediaQuery.viewInsets.bottom > 0
+                ? mediaQuery.viewInsets.bottom + 24.0
+                : verticalPadding;
+            final logoSize = isCompact ? 68.0 : 80.0;
+            final logoIconSize = isCompact ? 38.0 : 44.0;
+
+            return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                verticalPadding,
+                horizontalPadding,
+                bottomPadding,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Align(
                     alignment: Alignment.center,
                     child: Container(
-                      width: 76,
-                      height: 76,
+                      width: logoSize,
+                      height: logoSize,
                       decoration: BoxDecoration(
                         color: colors.primaryContainer,
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: Icon(
                         Icons.health_and_safety_rounded,
-                        size: 42,
+                        size: logoIconSize,
                         color: colors.onPrimaryContainer,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: isCompact ? 20 : 24),
                   Text(
                     'JeevSwasth',
                     textAlign: TextAlign.center,
@@ -367,21 +383,21 @@ class _LoginPageState extends State<LoginPage> {
                       color: colors.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 48),
+                  SizedBox(height: isCompact ? 32 : 48),
                   Text(
-                    _isCreateAccount ? 'Create your account' : 'Welcome back',
+                    'Welcome back',
                     style: textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _isCreateAccount ? 'Create a farmer account to submit reports.' : 'Sign in to continue to your account.',
+                    'Sign in to continue to your account.',
                     style: textTheme.bodyMedium?.copyWith(
                       color: colors.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  SizedBox(height: isCompact ? 22 : 28),
                   Form(
                     key: _formKey,
                     child: Column(
@@ -394,8 +410,8 @@ class _LoginPageState extends State<LoginPage> {
                           textInputAction: TextInputAction.next,
                           autocorrect: false,
                           decoration: InputDecoration(
-                             labelText: 'Email${_isCreateAccount ? '' : ' or role'}',
-                             hintText: _isCreateAccount ? 'you@example.com' : 'Demo role, e.g. farmer',
+                             labelText: 'Email or role',
+                             hintText: 'Demo role, e.g. farmer',
                             prefixIcon: const Icon(Icons.person_outline),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -406,7 +422,7 @@ class _LoginPageState extends State<LoginPage> {
                             if (email.isEmpty) {
                                return 'Please enter your email.';
                             }
-                            if (_isCreateAccount || email.contains('@')) {
+                             if (email.contains('@')) {
                               final valid = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
                               if (!valid) return 'Enter a valid email address.';
                             }
@@ -455,7 +471,7 @@ class _LoginPageState extends State<LoginPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  SizedBox(height: isCompact ? 22 : 28),
                   FilledButton(
                     onPressed: _isSigningIn ? null : _handleSignIn,
                     style: FilledButton.styleFrom(
@@ -464,12 +480,18 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: Text(_isCreateAccount ? 'Create account' : 'Sign in'),
+                    child: const Text('Sign in'),
                   ),
                   const SizedBox(height: 12),
                   TextButton(
-                    onPressed: _isSigningIn ? null : () => setState(() => _isCreateAccount = !_isCreateAccount),
-                    child: Text(_isCreateAccount ? 'Already have an account? Sign in' : 'Need an account? Create one'),
+                    onPressed: _isSigningIn
+                        ? null
+                        : () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const RegistrationPage(),
+                              ),
+                            ),
+                    child: const Text('Need an account? Create one'),
                   ),
                   const SizedBox(height: 24),
                   // Developer-only testing functionality
@@ -593,7 +615,7 @@ class _LoginPageState extends State<LoginPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: isCompact ? 24 : 32),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -615,9 +637,11 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
                 ],
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );

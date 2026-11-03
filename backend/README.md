@@ -33,13 +33,67 @@ $ npm install
 
 ## Neon PostgreSQL and roles
 
-Copy `.env.example` to `.env` and provide `DATABASE_URL` from the Neon production branch plus the Firebase Admin service-account values. The backend refuses to start when `DATABASE_URL` is missing, uses TLS for Neon, and never enables TypeORM schema synchronization.
+Copy `.env.example` to `.env` and provide the database variable required by the command being run, plus the Firebase Admin service-account values. The NestJS server uses `DATABASE_URL`; migration commands use the explicitly selected `DATABASE_URL_PRODUCTION` or `DATABASE_URL_LOCAL`. The backend refuses to start when its database URL is missing, uses TLS for Neon, and never enables TypeORM schema synchronization.
 
-After compiling the backend, apply the explicit migration:
+### TypeORM migration workflow
+
+The migration CLI runs in Node.js and uses `src/database/data-source.ts`.
+Cloudflare Workers do not run TypeORM; they continue using the existing `pg`
+connection supplied by the Hyperdrive binding.
+
+Set the connection variables in the shell or in an untracked `.env` file. Do
+not commit credentials:
+
+```bash
+export DATABASE_URL_PRODUCTION='<Neon production connection string>'
+export DATABASE_URL_LOCAL='<local PostgreSQL connection string>'
+export DATABASE_URL='<database used for migration generation>'
+```
+
+Production commands require `DATABASE_URL_PRODUCTION`. Local commands require
+`DATABASE_URL_LOCAL`. The data source uses TLS, `synchronize: false`, and the
+`typeorm_migrations` table for migration tracking.
+
+Create an empty migration without connecting to a database:
+
+```bash
+npm run migration:create -- src/database/migrations/MigrationName
+```
+
+Generate a migration by comparing entities with the database selected by
+`DATABASE_URL`:
+
+```bash
+npm run migration:generate -- src/database/migrations/MigrationName
+```
+
+Inspect or execute production migrations:
+
+```bash
+npm run migration:show
+npm run migration:run
+npm run migration:revert
+```
+
+Inspect or execute local migrations:
+
+```bash
+npm run migration:show:local
+npm run migration:run:local
+```
+
+`migration:revert` reverts the latest migration and may remove or alter data;
+review the migration and take a backup before running it. Migration generation
+and execution are separate operations. No migration command is run
+automatically by the Cloudflare Worker.
+
+For a compiled production deployment, build first and run the TypeORM CLI
+against the compiled data source:
 
 ```bash
 npm run build
-npx typeorm migration:run -d dist/database/data-source.js
+./node_modules/.bin/cross-env MIGRATION_TARGET=production node ./node_modules/typeorm/cli.js migration:show -d dist/database/data-source.js
+./node_modules/.bin/cross-env MIGRATION_TARGET=production node ./node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js
 ```
 
 Firebase remains the identity provider. On the first authenticated request, the backend creates a `users` row and assigns only `farmer`; it loads roles from PostgreSQL on every guarded request and rejects disabled users. Veterinarian and surveillance-officer assignments must be performed by a trusted operator in Neon's SQL Editor, not by Flutter or a public API.

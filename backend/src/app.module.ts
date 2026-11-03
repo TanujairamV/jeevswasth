@@ -7,6 +7,7 @@ import { ReportsService } from './reports/reports.service.js';
 import { FirebaseAuthService } from './auth/firebase-auth.service.js';
 import { FirebaseAuthGuard } from './auth/firebase-auth.guard.js';
 import { DatabaseModule } from './database/database.module.js';
+import { ProfileController } from './profile.controller.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -21,7 +22,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       serviceId: 'backend',
     }),
   ],
-  controllers: [AppController, ReportsController],
+  controllers: [AppController, ReportsController, ProfileController],
   providers: [AppService, ReportsService, FirebaseAuthService, FirebaseAuthGuard],
 })
 export class AppModule {}

@@ -48,7 +48,7 @@ function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
   };
 }
 
@@ -132,6 +132,24 @@ function validLocation(location: unknown) {
     && typeof candidate.longitude === 'number' && Number.isFinite(candidate.longitude) && candidate.longitude >= -180 && candidate.longitude <= 180;
 }
 
+function parseProfile(body: unknown) {
+  if (!body || typeof body !== 'object') return 'Profile must be an object.';
+  const value = body as Record<string, unknown>;
+  if (typeof value.displayName !== 'string' || value.displayName.trim().length === 0 || value.displayName.length > 255) return 'Full name is required.';
+  if (value.mobileNumber !== null && value.mobileNumber !== undefined && (typeof value.mobileNumber !== 'string' || !/^\+91[6-9][0-9]{9}$/.test(value.mobileNumber))) return 'Enter a valid Indian mobile number.';
+  if (value.roleDetails !== null && value.roleDetails !== undefined && (!value.roleDetails || typeof value.roleDetails !== 'object' || Array.isArray(value.roleDetails))) return 'Role details must be an object.';
+  const location = value.location;
+  if (location === null || location === undefined) {
+    return { displayName: value.displayName.trim(), mobileNumber: value.mobileNumber ?? null, location: null, roleDetails: value.roleDetails ?? null };
+  }
+  if (!validLocation(location)) return 'Location coordinates are invalid.';
+  const address = location as Record<string, unknown>;
+  for (const [key, max] of [['state', 255], ['district', 255], ['locality', 255], ['postalCode', 32], ['formattedAddress', 500]] as const) {
+    if (address[key] !== undefined && address[key] !== null && (typeof address[key] !== 'string' || address[key].length > max)) return `Location field ${key} is invalid.`;
+  }
+  return { displayName: value.displayName.trim(), mobileNumber: value.mobileNumber ?? null, location: address, roleDetails: value.roleDetails ?? null };
+}
+
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders() });
@@ -184,6 +202,36 @@ export default {
         const auth = await authenticate(request, env);
         const pending = await withDatabase(env, (client) => client.query(`SELECT r.name AS role, rr.status FROM role_requests rr JOIN roles r ON r.id = rr.role_id WHERE rr.user_id = $1 AND rr.status = 'pending' ORDER BY rr.created_at DESC`, [auth.user.id]));
         return json({ status: 'ok', user: { firebaseUid: auth.uid, email: auth.user.email, displayName: auth.user.display_name, roles: auth.user.roles, pendingRoleRequests: pending.rows.map((row) => row.role) } });
+      }
+      if (url.pathname === '/api/v1/me/profile' && request.method === 'PATCH') {
+        const auth = await authenticate(request, env);
+        let body: unknown;
+        try {
+          body = await request.json();
+        } catch {
+          return json({ status: 'rejected', message: 'Request body must be valid JSON' }, 400);
+        }
+        const profile = parseProfile(body);
+        if (typeof profile === 'string') return json({ status: 'rejected', message: profile }, 400);
+        await withDatabase(env, (client) => client.query(`
+          UPDATE users
+          SET display_name = $1, mobile_number = $2, latitude = $3, longitude = $4,
+              state = $5, district = $6, locality = $7, postal_code = $8,
+              formatted_address = $9, role_details = $10::jsonb, updated_at = now()
+          WHERE id = $11`, [
+            profile.displayName,
+            profile.mobileNumber,
+            profile.location?.latitude ?? null,
+            profile.location?.longitude ?? null,
+            profile.location?.state ?? null,
+            profile.location?.district ?? null,
+            profile.location?.locality ?? null,
+            profile.location?.postalCode ?? null,
+            profile.location?.formattedAddress ?? null,
+            JSON.stringify(profile.roleDetails),
+            auth.user.id,
+          ]));
+        return json({ status: 'ok' });
       }
       if (url.pathname === '/api/v1/me/role-requests' && request.method === 'POST') {
         const auth = await authenticate(request, env);

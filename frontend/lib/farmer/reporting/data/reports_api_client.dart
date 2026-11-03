@@ -136,6 +136,17 @@ class ReportsApiClient {
     try { return (jsonDecode(response.body) as Map<String, dynamic>)['assignment'] as String; } catch (_) { throw const ReportsApiException('The server returned an invalid role response.', kind: ReportsApiErrorKind.malformedResponse); }
   }
 
+  Future<void> updateProfile(Map<String, dynamic> profile) async {
+    final response = await _request(() async => _client.patch(
+          Uri.parse('$baseUrl/api/v1/me/profile'),
+          headers: await _headers(),
+          body: jsonEncode(profile),
+        ));
+    if (response.statusCode != 200) {
+      throw ReportsApiException(_errorMessage(response, 'Could not save your registration details.'), kind: ReportsApiErrorKind.http, statusCode: response.statusCode);
+    }
+  }
+
   Future<Map<String, String>> _headers({String? firebaseIdToken}) async {
     final token = firebaseIdToken ?? await FirebaseAuth.instance.currentUser?.getIdToken();
     if (token == null || token.isEmpty) throw const ReportsApiException('Sign in before using reports.', kind: ReportsApiErrorKind.authentication);
