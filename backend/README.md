@@ -96,13 +96,21 @@ npm run build
 ./node_modules/.bin/cross-env MIGRATION_TARGET=production node ./node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js
 ```
 
-Firebase remains the identity provider. On the first authenticated request, the backend creates a `users` row and assigns only `farmer`; it loads roles from PostgreSQL on every guarded request and rejects disabled users. Veterinarian and surveillance-officer assignments must be performed by a trusted operator in Neon's SQL Editor, not by Flutter or a public API.
+Firebase remains the identity provider. On the first authenticated request, the backend creates a `users` row; it loads roles from PostgreSQL on every guarded request and rejects disabled users. Veterinarian and surveillance-officer assignments are handled by the administrator review workflow. The administrator role is never selectable in Flutter.
 
 Example SQL administration:
 
 ```sql
 -- Available roles
 SELECT id, name FROM roles ORDER BY name;
+
+-- Bootstrap the first administrator from a trusted server/database session.
+-- Replace FIREBASE_UID only after verifying the UID in Firebase Authentication.
+-- This is intentionally not exposed through the application or registration UI.
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id FROM users u CROSS JOIN roles r
+WHERE u.firebase_uid = 'FIREBASE_UID' AND r.name = 'administrator'
+ON CONFLICT DO NOTHING;
 
 -- Users and assigned roles
 SELECT u.firebase_uid, u.email, u.display_name, u.is_active,
@@ -129,7 +137,7 @@ UPDATE users SET is_active = false, updated_at = now()
 WHERE firebase_uid = 'FIREBASE_UID';
 ```
 
-The existing report endpoint and response contract are unchanged. The NestJS report service remains in-memory for the original Node path; the Cloudflare Worker report endpoints now persist to the Neon `reports` table. Flutter remains local-first and keeps its existing retry-safe client report ID.
+The existing report endpoint and response contract are unchanged. The Cloudflare Worker is the production path configured in Flutter and persists reports and administrator data to the Neon `reports` table. The NestJS path includes the same administrator API for Node deployments. Flutter remains local-first and keeps its existing retry-safe client report ID.
 
 ## Cloudflare Workers deployment
 
@@ -160,7 +168,7 @@ The Worker preserves Firebase ID-token verification using Firebase Secure Token 
 
    `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` are retained in the secret list for compatibility with the Node NestJS deployment, but the Workers adapter verifies tokens through Firebase's public JWKS and does not require the private key.
 
-4. Apply all TypeORM migrations against Neon using the Node backend migration workflow before publishing the Worker. The Worker expects `users`, `roles`, `user_roles`, and `reports` to exist. The new report migration is `1710000001000-CreateReports`.
+4. Apply all TypeORM migrations against Neon using the Node backend migration workflow before publishing the Worker. The Worker expects `users`, `roles`, `user_roles`, `role_requests`, `reports`, and `admin_audit_logs` to exist. The administrator migration is `1710000004000-CreateAdminAuditAndReviewMetadata`.
 
 5. Deploy:
 
@@ -170,7 +178,9 @@ The Worker preserves Firebase ID-token verification using Firebase Secure Token 
 
 6. Use the Wrangler output URL as the Flutter API base URL, preserving the `/api/v1` prefix. No Firebase private key or database URL belongs in Flutter.
 
-Limitations: the original NestJS `ReportsService` still uses its existing in-memory map, so Node-hosted and Worker-hosted report stores are separate until the NestJS path is migrated to the same repository. The Worker adapter still does not include the existing cluster endpoint.
+The first administrator must be provisioned only after the migration has run: authenticate once so the Firebase UID exists in `users`, verify the UID in the Firebase console, then run the bootstrap SQL above from a protected Neon SQL session. Never grant the role based on the first registration, email text, or a Flutter request. The SQL session should be restricted to trusted operators and recorded in the deployment change log.
+
+The administrator API is available at `/api/v1/admin/overview`, `/applications`, `/users`, `/reports`, and `/audit-logs`, with review and account-status mutation endpoints protected by both Firebase token verification and the database-backed administrator role. Apply the migration before deploying either backend.
 
 The role-selection flow uses `GET /api/v1/me` to resolve authoritative roles and `POST /api/v1/me/role-requests` to select a role. Farmer selection is assigned immediately after Firebase authentication; veterinarian and surveillance-officer selections create pending requests and never grant privileged access directly. Apply migration `1710000002000-CreateRoleRequests` before using these endpoints.
 

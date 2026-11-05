@@ -67,6 +67,14 @@ export class UserService {
     };
   }
 
+  async hasRole(userId: string, role: string) {
+    const rows = await this.users.query(
+      `SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = $1 AND r.name = $2 LIMIT 1`,
+      [userId, role],
+    );
+    return rows.length > 0;
+  }
+
   async requestRole(userId: string, role: string) {
     if (!['farmer', 'veterinarian', 'surveillance_officer'].includes(role)) return null;
     const assigned = await this.users.query(

@@ -25,6 +25,7 @@ class _SurveillanceHomeState extends State<SurveillanceHome> {
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 900;
     final destinations = SurveillanceNavBar.destinations;
+    final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: SafeArea(
@@ -32,13 +33,20 @@ class _SurveillanceHomeState extends State<SurveillanceHome> {
           children: [
             if (wide)
               NavigationRail(
+                backgroundColor: colors.surface,
+                indicatorColor: colors.secondaryContainer,
+                useIndicator: true,
                 selectedIndex: _selectedTab,
                 onDestinationSelected: (index) =>
                     setState(() => _selectedTab = index),
                 labelType: NavigationRailLabelType.all,
+                groupAlignment: -0.7,
                 leading: const Padding(
                   padding: EdgeInsets.only(top: 12, bottom: 20),
-                  child: CircleAvatar(child: Icon(Icons.shield_outlined)),
+                  child: CircleAvatar(
+                    radius: 28,
+                    child: Icon(Icons.shield_outlined),
+                  ),
                 ),
                 destinations: destinations
                     .map(

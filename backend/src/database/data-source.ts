@@ -7,6 +7,7 @@ import { CreateUsersAndRoles1710000000000 } from './migrations/1710000000000-Cre
 import { CreateReports1710000001000 } from './migrations/1710000001000-CreateReports.js';
 import { CreateRoleRequests1710000002000 } from './migrations/1710000002000-CreateRoleRequests.js';
 import { AddRegistrationProfile1710000003000 } from './migrations/1710000003000-AddRegistrationProfile.js';
+import { CreateAdminAuditAndReviewMetadata1710000004000 } from './migrations/1710000004000-CreateAdminAuditAndReviewMetadata.js';
 
 const migrationTarget = process.env.MIGRATION_TARGET;
 const url = migrationTarget === 'production'
@@ -30,7 +31,7 @@ export default new DataSource({
   url,
   ssl: { rejectUnauthorized: false },
   entities: [User, Role],
-  migrations: [CreateUsersAndRoles1710000000000, CreateReports1710000001000, CreateRoleRequests1710000002000, AddRegistrationProfile1710000003000],
+  migrations: [CreateUsersAndRoles1710000000000, CreateReports1710000001000, CreateRoleRequests1710000002000, AddRegistrationProfile1710000003000, CreateAdminAuditAndReviewMetadata1710000004000],
   migrationsTableName: 'typeorm_migrations',
   synchronize: false,
 });

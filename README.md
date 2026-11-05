@@ -84,6 +84,26 @@ For a physical Android device, configure the API host when needed:
 flutter run --dart-define=JEEVSWASTH_ANDROID_API_HOST=<LAN_HOST>
 ```
 
+### Admin test login
+
+The login page includes an `Admin Test Login` action only for non-release,
+explicitly enabled builds. Credentials are supplied at build time and are not
+stored in Dart, Git, assets, or production configuration:
+
+```bash
+flutter run \
+  --dart-define=ENABLE_ADMIN_TEST_LOGIN=true \
+  --dart-define=ADMIN_TEST_EMAIL=<firebase-test-account-email> \
+  --dart-define=ADMIN_TEST_PASSWORD=<firebase-test-account-password>
+```
+
+The Firebase account must already exist and its Firebase UID must be
+provisioned with the `administrator` role using the controlled Neon procedure
+in `backend/README.md`. The button still calls Firebase Authentication and
+then verifies the administrator role through the backend; it never grants the
+role from Flutter. `flutter build apk --release` always hides the action,
+including if the defines are accidentally supplied.
+
 ### Run the backend
 
 ```bash
